@@ -359,17 +359,17 @@ Script paths are relative to the repo root. Data files are named but not include
 
 ![Figure 3.10](figures/fig3_10.png)
 
-- a, b, d on the fixed split (1,623 held-out genes, 14,198 candidates); c on LOCO
+- a, b on the fixed split (1,623 held-out genes, 14,198 candidates); c on LOCO
 - a: P@1 as the window is cut back from the upstream end; open circle for -250 to +250; mean of five seeds, bars the range
 - b: P@1 of the five networks (not refitted) when strong 3′ sites, 5′ sites or both are modified (filled) or the same number of random positions (open); left permuted, right resampled; -40 to +40 left alone
 - c: win-rate on real sequence against dinucleotide shuffles (3 replicates)
-- d: win-rate over eight seeds, sequence alone against sequence plus the acceptor score; dashed line the acceptor score alone
 - context: 0.479 (-100), 0.518 (-250), 0.570 (-500), 0.629 (-1000), 0.653 (-1500), 0.649 (-2000); -250 to +250 gives 0.506; saturates near -1,500
-- splice-site modification: no change (all P >= 0.12)
+- splice-site modification: no change (all P >= 0.12); strong sites are a median 7 acceptor and 2 donor calls, 179 nt, 7% of the window
+- so the network doesn't rely on the sites themselves; with c, its signal is spread over the window (the context the sites sit in)
 - shuffling: win-rate 0.847 to 0.629 (network), 0.699 to 0.544 (splice model)
-- seeds: 0.839 +/- 0.009 with the acceptor score, 0.832 +/- 0.013 without, Welch P = 0.22; acceptor score alone win-rate 0.620, P@1 0.397
+- acceptor score as an extra network input (text only, no panel): 0.839 +/- 0.009 with the acceptor score, 0.832 +/- 0.013 without, Welch P = 0.22; acceptor score alone win-rate 0.620, P@1 0.397
 - chance P@1 on this split 0.292
-- a: `thesis_ch3/analysis/context_sweep.py`; b: `thesis_ch3/analysis/splice_scramble.py`, `thesis_ch3/analysis/patching.py`; d: `analysis/acceptor/acceptor_arch_train.py`; plot: `thesis_ch3/figures/fig3_09_robustness.R`
+- a: `thesis_ch3/analysis/context_sweep.py`; b: `thesis_ch3/analysis/splice_scramble.py`, `thesis_ch3/analysis/patching.py`; acceptor-score input: `analysis/acceptor/acceptor_arch_train.py`; plot: `thesis_ch3/figures/fig3_09_robustness.R`
 
 **Figure 3.11. First-layer filters and splice-site implantation**
 
