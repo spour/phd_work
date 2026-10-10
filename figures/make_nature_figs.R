@@ -56,6 +56,11 @@ style_plot <- function(p, s) {
   full <- tryCatch(ggplot2:::plot_theme(p), error = function(e) theme_classic())
   lab <- letter_of(p$labels$title)
   p <- p + labs(title = lab, subtitle = NULL, caption = NULL)
+  for (a in intersect(names(p$labels), c("x", "y", "colour", "fill", "linetype", "shape", "size"))) {
+    v <- p$labels[[a]]
+    if (is.character(v) && length(v) == 1 && grepl("^[a-z]", v))
+      p <- p + do.call(labs, setNames(list(paste0(toupper(substr(v, 1, 1)), substring(v, 2))), a))
+  }
   axes  <- !blank(full$axis.line) || !blank(full$axis.line.x) || !blank(full$axis.line.y)
   ticks <- !blank(full$axis.ticks)
   tiles <- any(vapply(p$layers, function(l) inherits(l$geom, c("GeomTile", "GeomRaster")), TRUE))
@@ -133,7 +138,46 @@ lab_of <- function(l) paste(c(l$aes_params$label,
   if (!is.null(l$mapping$label)) rlang::quo_text(l$mapping$label)), collapse = " | ")
 drop_text <- function(q, re) {
   q$layers <- Filter(function(l) !(inherits(l$geom, c("GeomText", "GeomLabel")) && grepl(re, lab_of(l))), q$layers); q }
+fix_family <- function(df) {
+  if (is.data.frame(df) && all(c("protein", "family") %in% names(df)))
+    df$family[df$protein %in% c("MSI1", "DAZAP1")] <- "other"
+  df
+}
 FIX <- list(
+  fig2_3 = function(q) {
+    d <- q$data
+    if (is.data.frame(d) && all(c("model", "metric", "value") %in% names(d)) && "AUROC" %in% d$metric) {
+      for (m in c("RF", "LR", "CNN")) {
+        t <- jsonlite::read_json(file.path(PUB, "models/prod", tolower(m), "metadata.json"))$winner_meta$test_metrics
+        v <- c(AUROC = t$AUC, AUPRC = t$AUPRC, F1 = t$F1)
+        i <- d$model == m
+        d$value[i] <- round(unname(v[as.character(d$metric[i])]), 3)
+      }
+      q$data <- d
+    }
+    q },
+  fig3_8 = function(q) {
+    for (l in q$layers) if (is.data.frame(l$data) && all(c("lab", "col") %in% names(l$data)) &&
+                            all(c("3' splice site", "5' splice site") %in% l$data$lab)) {
+      d <- l$data
+      c3 <- d$col[d$lab == "3' splice site"][1]; c5 <- d$col[d$lab == "5' splice site"][1]
+      d$col[d$lab == "3' splice site"] <- c5; d$col[d$lab == "5' splice site"] <- c3
+      l$data <- d
+    }
+    q },
+  fig3_9 = function(q) {
+    sc <- q$scales$get_scales("fill")
+    if (!is.null(sc) && is.character(sc$name) && grepl("^used", sc$name)) sc$name <- sub("^used", "Annotated", sc$name)
+    q },
+  fig3_13 = function(q) {
+    q$data <- fix_family(q$data)
+    for (l in q$layers) if (is.data.frame(l$data) && "family" %in% names(l$data)) {
+      d <- fix_family(l$data)
+      if (inherits(l$geom, "GeomPoint")) d <- d[d$family != "other", ]
+      if ("protein" %in% names(d) && inherits(l$geom, c("GeomTextRepel", "GeomText"))) d <- d[!d$protein %in% c("MSI1", "DAZAP1"), ]
+      l$data <- d
+    }
+    q },
   fig2_1 = function(q) drop_text(q, "retained"),
   fig2_9 = function(q) {
     if (inherits(q$facet, "FacetWrap") && "src" %in% names(q$facet$params$facets))
