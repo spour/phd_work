@@ -1,0 +1,279 @@
+Figure: what the polyadenylation CNN reads, and what it does with a splice site
+Methods, numbers, results, and the figure caption
+==============================================================================
+
+The figure has two panels answering two halves of one question. Panel A asks what the network's
+first layer detects and where along the window each detector matters. Panel B asks what happens
+causally when a splice site is written into a real genomic window.
+
+The figure itself carries no explanatory text. Everything needed to read it is here.
+
+
+================================================================================
+PART I   METHODS
+================================================================================
+
+I.1  MODEL
+----------
+The reported model is the convolutional network trained by cnn_train.py over a 2,500 nt window,
+positions -2,000 to +500 relative to the cleavage site, saved as cnn_model.pt at epoch 6. One
+convolutional layer of 32 filters of width 19, then pooling to 100 nt bins, then a linear read-out.
+
+Training: BCEWithLogitsLoss with pos_weight = n_negative / n_positive = 8.945, dropout 0.4, learning
+rate 1e-3, weight decay 1e-6, batch 128, up to 60 epochs with patience 10.
+
+Performance, held out: within-gene win rate 0.821, pooled AUROC 0.818, 0.847 leave-one-chromosome-out
+over the analysis set.
+
+I.2  DATA AND SPLIT
+-------------------
+48,394 peaks, split BY GENE so no gene contributes to more than one split.
+
+  train  27,658     2,781 real 3' ends    24,877 competitors
+  val     6,538       443 real 3' ends     6,095 competitors
+  test   14,198     1,623 real 3' ends    12,575 competitors
+
+Competitors are filtered baseline-model false positives: peaks the upstream model called that are
+not real 3' ends. 24,877 + 6,095 + 12,575 = 43,547, the whole competitor set. Every number in the
+figure uses the test split and uses all of it; nothing is subsampled. Windows containing an N token
+are excluded, which removes none from the test split. The test split holds 1,623 genes with one
+real 3' end each.
+
+I.3  CALIBRATION, WHICH GOVERNS HOW PANEL B's AXIS MAY BE READ
+--------------------------------------------------------------
+Because training was class balanced by pos_weight = 8.945, the network's output is calibrated to a
+50/50 prior rather than to the 11.4% prevalence of real 3' ends in the data. An untouched competitor
+therefore has a median predicted probability of 0.6251, not something near 0.114.
+
+Panel B's y axis is the raw sigmoid of the network's logit. It is a relative scale on which the two
+splice sites move in opposite directions. It is NOT a posterior probability that a peak is a real
+3' end, and 0.63 must not be read as "63% of these are real".
+
+Ranking results are unaffected, since win rate and AUROC depend only on the order of scores.
+
+cnn_model.pt also stores temperature = 1225.80 from a validation fit. Dividing logits by 1226 would
+collapse every prediction onto 0.5, so that fit is degenerate. It is applied nowhere in this work.
+
+I.4  PANEL A: FILTERS AND POSITIONAL CONTRIBUTION
+-------------------------------------------------
+LOGOS. Each row is one of the 32 first-layer filters, drawn as a position weight matrix over its 19
+positions in bits. Rows are ordered by summed absolute positional contribution, most contributing at
+the top. Each row is labelled with its identity, its information content in bits per column, and the
+number of activating sites it has across the test set.
+
+HEATMAP. The window is divided into 25 bins of 100 nt spanning -2,000 to +500. Each cell is that
+filter's contribution to within-gene ranking in that bin, obtained by silencing the filter in that
+band and re-scoring. Blue means silencing costs the real 3' end more than its competitors, so the
+filter argues for the real end there; orange is the reverse. Contributions span -0.0721 to +0.0942.
+Computed on 14,198 test peaks in 1,623 genes; the intact model's win rate is 0.8211.
+
+One output bin sees 378 nt of input, so a 100 nt silencing band is narrower than what the model
+reads at that position, and the heatmap's resolution should be read accordingly.
+
+WHAT WAS REMOVED, AND WHY IT WAS REMOVED. Earlier versions labelled each filter with its nearest
+match in a small hand-assembled reference list and a PWM correlation r against it, and annotated one
+row as a polypyrimidine tract. Both were dropped from the figure because they are guesses presented
+as measurements. The reference list is short, so every filter has a nearest entry whether or not it
+detects anything; and a T-rich filter correlates with an acceptor reference because acceptors are
+T-rich, not because the filter detects acceptors. The matches for the record:
+
+  filter18   0.80 b/col      235 sites   no match above threshold, best r 0.614
+  filter11   0.62 b/col    1,858 sites   no match above threshold, best r 0.626
+  filter27   0.82 b/col   24,668 sites   acceptor_3ss_pyAG, r 0.943
+  filter17   0.74 b/col       37 sites   no match above threshold, best r 0.466
+  filter00   0.58 b/col    4,839 sites   acceptor_3ss_pyAG, r 0.747
+
+filter27 is the one that used to be annotated "polypyrimidine tract". Its consensus is a pure T run
+and it is by far the most used filter in the model, 24,668 activating sites against a median of
+1,566. Calling it an acceptor detector is exactly the inference Panel B was built to test, and Panel
+B does not support it, so the label had no business on the figure.
+
+I.5  PANEL B: IMPLANTATION
+--------------------------
+ASSAY. A construct is written over the native bases at a FIXED position 230 nt upstream of the
+cleavage site, in every window of the background, and the window is re-scored. The reported quantity
+is the median predicted probability across windows. Tandem series repeat the unit n times, so the
+insert grows with n and displaces that much native sequence.
+
+No maximum over positions is taken. Earlier versions reported the best of 60 implantation positions;
+this was dropped because the maximum is an upward-biased statistic taken separately for each
+construct and each control, and it was shown to both inflate and mask effects.
+
+BACKGROUND. All 12,575 held-out competitor windows. Real 3' ends were not used because they already
+sit at a median probability of 0.952 and an activating construct has no room to rise there.
+Competitors sit at 0.6251 and can move both ways, and "does adding a splice site to a competitor
+make the model call it real" is the more direct question.
+
+CONTROLS. Two families, both drawn rather than subtracted, because neither is flat everywhere and
+choosing one after seeing the result would hide that.
+
+  Mononucleotide shuffle, 20 draws. A permutation of the insert's own bases: same length, same base
+  counts, different order. For TTTAACTTTCTTTTTTACAGACG the first three draws are
+  ATCGATTTCATGTCTTCTAATTT, CATGTATTTACCTTTGTATTATC, CATCTTATTTTTCTACTAGTAGT.
+
+  Derangement, all 9. Every base mapped to a different base under a permutation of {A,C,G,T} with no
+  fixed point, applied to the whole insert. Under A>C C>A G>T T>G the same sequence becomes
+  GGGCCAGGGAGGGGGGCACTCAT.
+
+Each control sequence is implanted into the same 12,575 windows at the same position and scored
+identically. The grey band is the range the two families span, each plus or minus the standard error
+of its own mean over draws. The standard deviation ACROSS draws is larger, 0.09 for the shuffles and
+0.17 for the derangements at four copies, which is why the mean of many draws is the control and a
+single draw is not.
+
+The dinucleotide shuffle used in earlier rounds was abandoned: for a poly-pyrimidine construct it
+returned the motif itself in 10 of 10 draws.
+
+I.6  DERIVING THE IMPLANTED SEQUENCES
+--------------------------------------
+Neither implanted sequence is a consensus string from a database.
+
+5' SPLICE SITE, CAGGTGAGT, score5 10.86. The plain argmax of the U1 snRNA duplex free energy over
+all 4^9 = 262,144 9-mers, decoded from the precomputed landscape and asserted in the pipeline rather
+than trusted. It is NOT the textbook donor: the consensus carried in cnn_interp_lib is CAGGTAAGT and
+the physical optimum differs at one position.
+
+3' SPLICE SITE, TTTAACTTTCTTTTTTACAGACG, score3 10.28. Derived from THE MODEL. Greedy hill climbing
+over single-base substitutions maximising the mean change in logit over 256 real 3' end windows: at
+each step all 21 free positions by 3 alternatives are evaluated, the best accepted, stopping when
+none improves. Constraints enforced at every step so the search never leaves the feasible set: AG
+pinned at positions 19 and 20, MaxEntScan score3 at least 10, the 18 nt tract at least 80%
+pyrimidine, and no G anywhere in the tract. Three restarts from random feasible seeds.
+
+The constraints matter. Without the pyrimidine and no-G requirements the same search returns
+ACGGTGTACTTTTGTTGCAGGTG, whose tract is 61% pyrimidine with 28% G and does not read as an acceptor.
+Adding them costs 0.31 in logit and buys a sequence that does.
+
+I.7  DERIVING THE TWO LOGOS BESIDE PANEL B
+-------------------------------------------
+One recipe, the measure swapped, which is the comparison the panel exists to make: keep every
+sequence whose own measure lies within a threshold of that measure's optimum, weight each linearly
+by closeness as weight = value - (optimum - threshold), count weighted bases by position, report
+bits.
+
+  5' SPLICE SITE. Exhaustive. All 262,144 9-mers are already scored, so the 115 within 2 kcal/mol of
+  the optimum are kept. A physical cut rather than a rank cut, so 115 is a result and not a choice.
+  GT was not pinned. Consensus CAGGTAAGG.
+
+  3' SPLICE SITE. The 23 nt register has 4^21 feasible sequences, so the ensemble is SAMPLED by
+  Metropolis-Hastings: target exp(delta / temperature) restricted to the same feasible set as the
+  search in I.6, proposal one random feasible single-base substitution, 128 chains for 900 steps,
+  first 200 discarded, temperature 0.0355 set from the seed's own delta. 668 distinct sequences
+  within 0.272 of the best delta found, consensus TTTTTCTCTTTTTTTTACAGCGT, mean 1.25 bits per column.
+
+Two methodological notes. Sampling temperature must scale with the height of the peak: a fixed 0.08
+held the chains on the unconstrained acceptor at +1.85 but on the constrained one at +0.82 gave 0.70
+acceptance, the chain mean fell from +0.80 to +0.10, and only 7 distinct near-optimal sequences were
+recovered, which is one sequence drawn as a logo. And the weighting must match across logos: an
+earlier version weighted the acceptor exponentially while the donor was linear, giving a
+threshold-edge sequence 37% weight where the other gave it zero.
+
+I.8  STATISTICS
+---------------
+Intervals on the median probability are 95% percentile bootstraps over windows, 2,000 resamples.
+Permutation tests elsewhere in this work use 500 permutations of a sequence's own bases. No sklearn
+or scipy; AUROC, logistic regression and Wilcoxon are implemented inline.
+
+
+================================================================================
+PART II   RESULTS
+================================================================================
+
+II.1  PANEL A
+-------------
+Positional contribution is concentrated, not diffuse. The five largest contributors by summed
+absolute contribution are filters 18, 11, 27, 17 and 00, at 0.707, 0.669, 0.656, 0.639 and 0.584.
+Contributions span -0.0721 to +0.0942 across 25 bins and 32 filters.
+
+Information content is low throughout, 0.55 to 0.82 bits per column. These are compositional
+detectors, not structured motifs, and that is the honest reading of the logo column.
+
+Site counts vary by three orders of magnitude, from 37 for filter17 to 24,668 for filter27, so a
+filter's contribution is not a function of how often it fires.
+
+II.2  PANEL B, THE 3' SPLICE SITE
+----------------------------------
+Implanted into 12,575 competitor windows whose untouched median probability is 0.6251:
+
+  copies   median p         95% CI            shuffles   derangements
+    1       0.799      [0.792, 0.805]           0.642        0.596
+    2       0.932      [0.930, 0.935]           0.676        0.579
+    3       0.975      [0.975, 0.976]           0.689        0.560
+    4       0.985      [0.985, 0.986]           0.706        0.538
+
+One copy of a 23 nt acceptor moves the median competitor from 0.63 to 0.80; four copies to 0.985.
+Both control families stay near baseline over the same range. The gain over the shuffles is +0.28 at
+four copies and over the derangements +0.45.
+
+The intervals are narrow, roughly 0.013 at one copy and 0.001 at four, because the sample is every
+held-out competitor rather than a subsample. At four copies the interval is narrower than the
+plotted point, which is why the values are printed on the panel.
+
+II.3  PANEL B, THE 5' SPLICE SITE
+----------------------------------
+  copies   median p         95% CI            shuffles   derangements
+    1       0.593      [0.584, 0.604]           0.620        0.626
+    4       0.451      [0.439, 0.462]           0.593        0.624
+    8       0.331      [0.320, 0.341]           0.564        0.610
+
+The donor moves the same windows the other way, to 0.331 at eight copies. The derangement control is
+markedly the flatter of the two here, holding within 0.015 of baseline across all eight doses while
+the shuffle drifts to 0.564; for the acceptor the relationship is reversed. This is why both are
+drawn.
+
+II.4  THE COMPARISON THE PANEL MAKES
+-------------------------------------
+The two sites move in opposite directions by comparable amounts, +0.36 and -0.29 in probability,
+with both control families near the untouched baseline throughout. A donor is read as evidence
+AGAINST a real 3' end and more of it is worse. An acceptor is read as evidence for one, but only
+when it is delivered as T rather than as C, which is the subject of the companion analysis.
+
+II.5  HOW FAR THE DOSE AXIS CAN BE READ
+----------------------------------------
+Both series stop at an insert length near 100 nt, four acceptor copies at 92 nt and eight donor
+copies at 72 nt, for reasons established by carrying the units to 24 copies.
+
+The logit never saturates: the acceptor gains about +1.6 per copy all the way out, reaching +30.97
+at 24 copies. What fails is interpretation. Median probability passes 0.999 at three copies, so the
+scale is exhausted. The share of windows whose logit exceeds +16.60, the highest value the model
+emits on any held-out sequence, crosses 5% at seven copies, 39.7% at eight and 100% at fourteen.
+Separately, past about 46 nt every homopolymer insert lands between -0.4 and -2.0 regardless of base,
+so long inserts are dominated by a generic length penalty. Both failure modes bite by about four
+copies.
+
+
+================================================================================
+PART III   FIGURE CAPTION
+================================================================================
+
+Use as written, or trim from the end.
+
+  Figure N. What the network detects, and what it does with a splice site.
+
+  (A) The 32 first-layer filters, drawn as position weight matrices in bits, ordered top to bottom
+  by summed absolute positional contribution. Each row gives the filter's identity, information
+  content in bits per column, and number of activating sites across the 14,198 held-out test peaks.
+  The heatmap gives each filter's contribution to within-gene ranking in each of 25 bins of 100 nt
+  spanning -2,000 to +500 nt relative to the cleavage site, obtained by silencing that filter in
+  that band and re-scoring. Blue: silencing costs the real 3' end more than its competitors, so the
+  filter argues for the real end there. Orange: the reverse. Contributions span -0.072 to +0.094.
+  One output bin sees 378 nt, so a 100 nt band is narrower than what the model reads at it. Intact
+  within-gene win rate 0.821 on 1,623 held-out genes.
+
+  (B) Median predicted probability when a splice site is written over the native bases at a fixed
+  position 230 nt upstream of the cleavage site, in all 12,575 held-out competitor windows. No
+  maximum over positions is taken. Left, the 3' splice site TTTAACTTTCTTTTTTACAGACG, MaxEntScan
+  score3 10.28, tract 83% pyrimidine and free of G, found by hill climbing for model score under
+  those constraints. Right, the 5' splice site CAGGTGAGT, the strongest U1 duplex 9-mer of all
+  262,144. Error bars are 95% percentile bootstraps over windows, 2,000 resamples, and are smaller
+  than the plotted point at four acceptor copies. The dashed line is the same windows untouched,
+  median 0.6251. The grey band is the same insert with its bases rearranged and implanted
+  identically: 20 mononucleotide shuffles and 9 derangements, each plus or minus the standard error
+  of its mean. Logos beside each part are the near-optimal ensembles of the measure that defined
+  each sequence, both weighted linearly by closeness to that measure's optimum: 668 sampled 23-mers
+  within 0.27 of the model's own optimum under the same constraints, and 115 9-mers within
+  2 kcal/mol of the U1 duplex optimum, exhaustive.
+
+  Because training was class balanced with pos_weight 8.945, the network's output is calibrated to a
+  50/50 prior rather than the 11.4% prevalence of real 3' ends. The y axis in (B) is the model's raw
+  sigmoid and is a relative scale, not a posterior probability that a peak is a real 3' end.

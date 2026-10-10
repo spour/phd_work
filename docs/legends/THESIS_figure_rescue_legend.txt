@@ -1,0 +1,110 @@
+FIGURE (panels a-b): the rescue figure
+Files: figure_rescue.pdf / .png
+Plotted by: make_figure_rescue.R (reads two TSVs, computes nothing)
+Data: rescue_rate.py -> rescue_rate_genes.tsv ; rescue_ranks.py -> rescue_ranks.tsv
+Companion text already in the tree: THESIS_figure_rescue.txt
+
+================================================================================
+JOURNAL-STYLE LEGEND (full)
+================================================================================
+
+Figure X. Reading 2,500 nt of context recovers the annotated 3' end on genes the
+500 nt baseline cannot resolve.
+(a) Sequence context read by each model. The baseline scores ten core
+polyadenylation motifs, the polyadenylation signal in three variants, four
+downstream elements, UGUA, poly-U and NUDT, each scanned in 30 nt windows at a
+stride of 10 across a 500 nt span (48 bins per motif). The extended models read
+2,500 nt, [-2,000, +500) in transcript orientation, and add splice context and
+learned sequence. The upper bar is that 2,500 nt span with the 500 nt baseline
+window shaded; the lower bar magnifies the shaded region so both can be labelled on
+one axis. Element positions are schematic; the spans and the motif list are not.
+The point of the panel is the difference in scale: the baseline reads a small
+neighbourhood in detail, and only the extended window contains the upstream splice
+sites.
+(b) Recovery of baseline-unresolved 3' ends, drawn as a flow in which every ribbon
+closes. A gene is contested when the baseline ranks at least one competitor at or
+above the annotated 3' end, which it cannot avoid by construction: a competitor is
+retained only when the random forest, the logistic regression and the baseline CNN
+all score it at or above that site, so the baseline is never first on a contested
+gene and its precision at 1 there is exactly zero. The universe is the 8,977 genes
+the baseline resolves plus the 4,847 contested genes whose candidates both extended
+models score, 13,824 in total; percentages are of that universe. Both extended
+models are leave-one-chromosome-out on every peak, so every gene is ranked by fits
+that never saw its chromosome. Of the 4,847 contested genes (35.1% of the universe),
+the annotated 3' end is placed first by both models in 1,787 genes (12.9%), by the
+sequence CNN alone in 1,515 (11.0%), by the splice model alone in 457 (3.3%), and by
+neither in 1,088 (7.9%). Precision at 1 over the universe therefore rises from 0.649
+to 0.921, from 8,977 to 12,736 genes ranked correctly. That 0.921 assumes the better
+model is chosen per gene and is an upper bound; a single combined ranking, the sum of
+the two scores z-scored within each gene, gives 0.893. Across all 6,583 contested
+genes scored against their full candidate lists, the sequence CNN alone recovers
+0.577 and lifts precision at 1 over all 15,560 genes from 0.577 to 0.821. The 1,736
+contested genes outside panel b are neither harder nor unscored, the CNN ranking the
+annotated site first in 66.8% of them against 68.1% elsewhere; they are excluded
+because every one of their competitors is an annotated polyadenylation site or a
+reference terminal exon, leaving no contest once annotated competitors are removed.
+This is an error-conditional re-ranking result, not a detection claim: the
+denominator is the baseline's own errors and the candidates are the baseline's own
+shortlist.
+
+================================================================================
+TRIMMED LEGEND
+================================================================================
+
+Figure X. Reading 2,500 nt of context recovers the annotated 3' end on genes the
+500 nt baseline cannot resolve. (a) Sequence context read by each model. The
+baseline scans ten core polyadenylation motifs (the polyadenylation signal in three
+variants, four downstream elements, UGUA, poly-U, NUDT) in 30 nt windows at stride
+10 across 500 nt; the extended models read 2,500 nt, [-2,000, +500) in transcript
+orientation, and add splice context and learned sequence. The lower bar magnifies
+the shaded baseline window; element positions are schematic, spans and motifs are
+not. (b) Recovery, drawn as a closed flow. A gene is contested when the baseline
+ranks a competitor at or above the annotated 3' end, which is guaranteed by how
+competitors were selected, so the baseline scores exactly zero there. Universe: the
+8,977 genes the baseline resolves plus the 4,847 contested genes both extended
+models score, 13,824 in total; both models are leave-one-chromosome-out. Of the
+contested genes, the annotated end is ranked first by both models in 1,787 (12.9% of
+the universe), the sequence CNN alone in 1,515 (11.0%), the splice model alone in
+457 (3.3%), and neither in 1,088 (7.9%), lifting precision at 1 from 0.649 to 0.921
+(12,736 of 13,824 genes). The 0.921 is a per-gene oracle upper bound; one combined
+ranking, the within-gene z-sum of the two scores, gives 0.893. Over all 6,583
+contested genes the CNN alone recovers 0.577 and raises genome-wide precision at 1
+from 0.577 to 0.821. Error-conditional re-ranking, not detection.
+
+================================================================================
+PROVENANCE
+================================================================================
+
+Plotting  make_figure_rescue.R  -> figure_rescue.pdf/.png
+          Reads rescue_rate_genes.tsv and rescue_ranks.tsv only; no computation.
+
+Data
+  rescue_rate.py   -> rescue_rate.tsv, rescue_rate_genes.tsv
+                      (two candidate sets: analysis_set, 4,847 genes both models
+                       cover; full_shortlist, 6,583 genes, CNN only)
+  rescue_ranks.py  -> rescue_ranks.tsv (4,847 genes; rank of the annotated end
+                      under the baseline, splice model, CNN, and the z-sum)
+Scores    cnn_wg_scores.npz        CNN, LOCO over all 70,723 peaks
+          splice26_loco_scores.npz splice model, refitted per chromosome over all
+                                   48,394 analysis peaks
+          shortlist_feat_all.parquet  rf_prob, the baseline ordering
+Shortlist scripts/build_shortlist.py (the rf + lr + cnn consensus rule)
+
+Rebuild
+  python rescue_rate.py ; python rescue_ranks.py
+  /cvmfs/.../r/4.5.0/bin/Rscript make_figure_rescue.R
+
+Panel that was cut, so it is not cited by accident
+  make_figure_rescue.R still builds a third panel, "c Rank of the annotated 3' end
+  among candidate sites" (recall against rank threshold for baseline, splice, CNN
+  and combined), but the final composition is pA/pB2 only, so it is NOT in the
+  figure. Its numbers print to stderr on every run if you want them in the text.
+
+The caveat this figure must be read with (from THESIS_figure_rescue.txt)
+  The extended models are re-rankers, not detectors. Ranked against every 1 nt
+  stride window of a gene, over 24 held-out genes and 2,806,911 windows, the
+  baseline random forest gives P@1 0.250 (median rank 16), the extended CNN 0.042
+  (median rank 386) and the splice model 0.000 (median rank 14,683). Used as
+  detectors the extended models lose by a wide margin; the productive question, and
+  the one this figure answers, is whether they fix the genes the baseline gets
+  wrong.

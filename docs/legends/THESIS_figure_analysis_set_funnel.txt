@@ -1,0 +1,78 @@
+FIGURE: Construction of the analysis set by successive filtering of candidate peaks
+Files: figure_analysis_set_funnel.pdf / .png
+Plotted by: make_analysis_set_funnel.R   Counts by: trace_analysis_set.py -> analysis_set_funnel.tsv
+
+--------------------------------------------------------------------------------
+CAPTION
+--------------------------------------------------------------------------------
+
+Figure X. Construction of the analysis set by successive filtering of candidate
+peaks. Attrition funnel over the 70,723 CPA peaks called across 6,583 protein-coding
+genes, one annotated ("canonical", real) 3' end per gene plus 64,140 model-predicted
+competitor peaks. Each bar is left-aligned on a shared count axis and its length is
+the number of peaks that survive that stage; the shaded notch between consecutive
+bars is what the intervening step removed, annotated with its size and criterion.
+Row labels give the surviving peak and gene counts. Filters act on the competitor
+pool only. (i) Competitors whose nearest same-strand PolyASite 2.0 cluster or
+PolyA_DB v4 site lies within 500 nt are removed as annotated alternative 3' ends
+(-18,119). (ii) Competitors whose 500 nt strand-oriented upstream window overlaps a
+GENCODE v49 last exon by at least 1 nt are removed as reference terminal-exon peaks
+(-1,076); the two exclusions are applied as a single conjunction, so the 5,294-peak
+overlap between them is attributed to the APA criterion, which is listed first.
+(iii) A gene is retained only if exactly one canonical peak and at least one
+competitor survive, which drops 1,660 genes and their canonical peaks (6,583 ->
+4,923 genes). (iv) Competitors at or downstream of their gene's canonical peak in
+transcript coordinates are removed (-1,398), and (v) the gene rule is re-applied,
+costing a further 76 genes. The final bar is split by class: 4,847 real 3' ends
+(blue) and 43,547 competitors (orange), 48,394 peaks in 4,847 genes. Two of the five
+steps therefore remove canonical rather than competitor peaks, because a gene that
+runs out of competitors leaves the set together with its canonical peak. Counts are
+not transcribed from pipeline logs: trace_analysis_set.py reconstructs the mask from
+the raw annotation caches (atlas_peak_cache.npz, polyadb_peak_cache.npz,
+termexon_gc_cache.npz) and asserts that it is identical to corr_rowmask.npz,
+upstream_rowmask.npz and the in_analysis_set column of cpa_peaks_final.parquet.
+
+--------------------------------------------------------------------------------
+SHORT VARIANT (if the caption must fit under ~120 words)
+--------------------------------------------------------------------------------
+
+Figure X. Construction of the analysis set by successive filtering of candidate
+peaks. Bar length is the number of peaks surviving each stage (shared axis, left
+aligned); the shaded notch between bars is what the step removed. Starting from
+70,723 called peaks in 6,583 genes (one annotated 3' end per gene, 64,140
+competitors), competitors are removed if APA-annotated (nearest same-strand
+PolyASite 2.0 or PolyA_DB v4 site within 500 nt; -18,119) or if their 500 nt
+upstream window overlaps a GENCODE v49 last exon (-1,076); genes are kept only with
+one canonical and >= 1 competitor (-1,660 peaks); competitors at or downstream of
+the canonical are removed (-1,398); the gene rule is re-applied (-76). Two steps
+therefore remove canonical peaks, since a gene without competitors leaves with its
+canonical. The analysis set is 48,394 peaks in 4,847 genes: 4,847 real 3' ends
+(blue) and 43,547 competitors (orange).
+
+--------------------------------------------------------------------------------
+PROVENANCE (for the methods section / thesis appendix)
+--------------------------------------------------------------------------------
+
+Plotting            make_analysis_set_funnel.R      (no computation; reads the TSV)
+Counts + assertions trace_analysis_set.py
+Figure data         analysis_set_funnel.tsv         (6 rows x 7 cols)
+Outputs             figure_analysis_set_funnel.pdf, figure_analysis_set_funnel.png
+
+Inputs read by trace_analysis_set.py
+  shortlist_feat_all.parquet          peak table (gene, chrom, center, strand, is_canonical)
+  fig3_new_positional_features.tsv    row key used to index the caches
+  atlas_peak_cache.npz["dist"]        distance to nearest PolyASite 2.0 repSite
+  polyadb_peak_cache.npz["dist"]      distance to nearest PolyA_DB v4 site
+  termexon_gc_cache.npz["te_window"]  GENCODE v49 last-exon overlap flag
+  corr_rowmask.npz["ROW"]             checked against (stages 1-3)
+  upstream_rowmask.npz["ROW"]         checked against (stages 4-6)
+  cpa_peaks_final.parquet             checked against (in_analysis_set column)
+
+Where the definition lives in the pipeline (two scripts, not one)
+  task_rerank_corr.py        APA + terminal-exon exclusions, then the gene rule
+  task_upstream_blocks.py    upstream-of-canonical rule, then the gene rule again
+  task_build_final_parquet.py  copies the resulting mask into in_analysis_set
+
+Rebuild
+  python trace_analysis_set.py                       # rewrites analysis_set_funnel.tsv
+  /cvmfs/.../r/4.5.0/bin/Rscript make_analysis_set_funnel.R

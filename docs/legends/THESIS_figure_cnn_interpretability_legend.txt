@@ -1,0 +1,146 @@
+FIGURE (panels A-B): what the CNN reads, and what it does with a splice site
+Files: figure_cnn_interpretability.pdf / .png
+Plotted by: make_figure_cnn_interpretability.R
+Panel A data: figure_cnn_main_data.py (from cnn_posmap_occlusion.py + cnn_interpret2.py)
+Panel B data: panelB_prob_ci.py
+Companion text already in the tree: THESIS_figure_cnn_interpretability.txt,
+                                    THESIS_cnn_splice_implantation.txt
+
+NOT to be confused with figure_cnn_interp.pdf (a different A-D figure: multi-scale
+occlusion, rank-stratified importance, motif implantation, filter information
+content) or figure_cnn_interp_supp.pdf (its supplement).
+
+================================================================================
+JOURNAL-STYLE LEGEND (full)
+================================================================================
+
+Figure X. Sequence determinants learned by the polyadenylation CNN, and the
+causal effect of implanting a splice site into a competitor window.
+Both panels use the reported model (cnn_model.pt) on its held-out split, 14,198
+peaks in 1,623 genes (1,623 real 3' ends and 12,575 competitors), at an intact
+within-gene win-rate of 0.821.
+(A) Every first-layer filter and where along the window it moves the within-gene
+ranking. Left, the sequence logo of each of the 32 width-19 filters, estimated from
+the sites activating it above 30% of that filter's maximum, labelled with its
+information content per column and the number of activating sites. Right, the
+signed contribution of that filter in each of 25 bands of 100 nt, obtained causally
+by silencing one filter in one band at a time on the unchanged model:
+contribution = (mean over real 3' ends of the intact minus occluded logit) - (the
+same mean over competitors). Blue means the filter in that band pushes real 3' ends
+above their own gene's competitors and orange means it argues the other way; the
+scale is symmetric about zero. Rows are ordered by total absolute contribution, so
+the filters that move the ranking most sit at the top, and each logo is drawn beside
+its own row: the pairing is verified in code rather than assumed, by re-deriving the
+per-column consensus from each matrix as drawn and asserting it against the
+consensus recorded for that filter. Contribution concentrates in the last few
+hundred nucleotides upstream of the cleavage site rather than being spread across
+the window, and the largest single detector is a polypyrimidine filter (filter 27,
+0.82 bits per column, 24,668 activating sites, consensus poly-T), which is both the
+highest in information content and the most used. Filters are not annotated with
+reference-motif matches: a T-rich filter correlates with an acceptor reference
+because acceptors are T-rich, not because the filter detects acceptors, so only the
+measured quantities (identity, information content, site count, positional
+contribution) are shown.
+(B) Implantation. Each construct is written into every held-out competitor window
+at position -230 in tandem copies, and the window is re-scored. Points are the
+median predicted probability over all 12,575 competitor windows with 95% percentile
+bootstrap intervals (2,000 resamples over windows); the dashed line is the median
+of the untouched competitor windows (0.63). The grey band is the control envelope,
+spanned by two controls that are drawn rather than subtracted: 20 mononucleotide
+shuffles of each construct, which hold its length and composition exactly and vary
+only the order, and all 9 derangements of ACGT, which substitute every base and hold
+nothing, each widened by its own standard error across draws. Probability is plotted
+rather than the logit because the logit is unbounded and keeps climbing after the
+prediction it encodes has stopped moving. Competitor windows are used because real
+3' ends already sit at a median probability of 0.95 and an activating construct has
+nowhere to rise. Left, a 3' splice site (TTTAACTTTCTTTTTTACAGACG, tract 83%
+pyrimidine with no G, MaxEntScan score3 10.28): one copy raises the median from 0.63
+to 0.799 (95% CI 0.792-0.805) and four copies to 0.985, while the controls stay
+inside the band. Right, a 5' splice site (CAGGTGAGT, the strongest U1 duplex of all
+262,144 9-mers, score5 10.86): one copy gives 0.593 (0.584-0.604) and eight copies
+drive the median down to 0.331. The model therefore treats an upstream acceptor as
+evidence for a real 3' end and an upstream donor as evidence against, and the
+direction is causal, not correlational. Beside each part is the position weight
+matrix of an ensemble built by one recipe, sampling sequences whose own measure lies
+near that measure's optimum and weighting each by how close it is; the measures
+differ, which is the comparison. For the acceptor the measure is THE MODEL, sampled
+by Metropolis-Hastings over 23-mers with the AG pinned and score3 held at or above
+10, so every sequence in the ensemble is still a splice site (n = 668). For the
+donor it is the U1 duplex energy, exhaustive over all 262,144 9-mers (n = 115);
+GT was not pinned there and appears anyway.
+
+================================================================================
+TRIMMED LEGEND
+================================================================================
+
+Figure X. Sequence determinants learned by the CNN, and the effect of implanting a
+splice site into a competitor. Reported model on its held-out split: 14,198 peaks in
+1,623 genes (1,623 real 3' ends, 12,575 competitors), intact within-gene win-rate
+0.821. (A) Left, logo of each of the 32 first-layer filters (sites above 30% of the
+filter's maximum), labelled with information content per column and activating-site
+count. Right, the signed contribution of that filter in each of 25 bands of 100 nt,
+measured by silencing one filter in one band at a time: the mean intact-minus-
+occluded logit at real 3' ends minus the same at competitors. Blue, the filter
+argues for the real end in that band; orange, against. Rows are ordered by total
+absolute contribution and each logo is paired to its row by an in-code consensus
+check. Contribution concentrates in the few hundred nucleotides upstream of the
+cleavage site, and the largest detector is a polypyrimidine filter (filter 27, 0.82
+bits per column, 24,668 sites). (B) Each construct is implanted at -230 in tandem
+copies into every held-out competitor window and rescored. Points, median predicted
+probability over 12,575 windows with 95% bootstrap intervals (2,000 resamples);
+dashed line, untouched competitors (0.63); grey band, the envelope of 20
+mononucleotide shuffles and all 9 derangements. A 3' splice site
+(TTTAACTTTCTTTTTTACAGACG, 83% pyrimidine, no G, score3 10.28) lifts the median to
+0.799 (0.792-0.805) at one copy and 0.985 at four; a 5' splice site (CAGGTGAGT, the
+strongest U1 duplex, score5 10.86) gives 0.593 (0.584-0.604) at one copy and 0.331
+at eight. The logos beside each part are ensembles sampled near the optimum of the
+model (acceptor, n = 668, AG pinned, score3 >= 10) and of the U1 duplex (donor,
+n = 115, exhaustive over 9-mers, GT not pinned).
+
+================================================================================
+PROVENANCE
+================================================================================
+
+Plotting  make_figure_cnn_interpretability.R
+          -> figure_cnn_interpretability.pdf/.png
+
+Panel A
+  cnnmain_posmap.tsv, cnnmain_logos.tsv, cnnmain_notes.tsv   figure_cnn_main_data.py
+  upstream: cnn_posmap_occlusion.py  -> cnn_posmap_occlusion.tsv (32 filters x 25 bands)
+            cnn_interpret2.py --legacy --model cnn_model.pt --suffix _reference
+            -> filter_matches_reference.tsv, filter_pwms_reference.meme
+Panel B
+  panelB_prob_ci.tsv                                          panelB_prob_ci.py
+  logos: canon_acc_pwm.tsv + canon_acc_pwm_meta.tsv (acceptor ensemble)
+         u1_pwm.tsv (donor ensemble)
+  also read but not drawn: me3_pwm.tsv, me3_pwm_noc.tsv, gia_dose_matched_all.tsv,
+         gia_dose_evolved.tsv
+
+Model     cnn_model.pt (cnn_model_def.py, epoch 6), 2,500 nt window [-2,000, +500]
+          Asserted in figure_cnn_main_data.py: the occlusion table's intact win-rate
+          is 0.821101, so all panels are the reported model and not cnn_model_v1/v2.
+
+Parameters
+  A  occlusion band 100 nt, 25 bands, 32 filters; filter PWMs at the 30%-of-maximum
+     threshold (the count-matched estimates in cnn_filters_matched.tsv are for the
+     cross-architecture comparison and are NOT what this figure uses)
+  B  implant position -230; 12,575 competitor windows; 2,000 bootstrap resamples;
+     20 mononucleotide shuffles; 9 derangements
+  Acceptor ensemble: 128 chains, 900 Metropolis-Hastings steps, temperature 0.0354,
+     score3 floor 10.0, tract >= 80% pyrimidine, no G, 668 sequences kept
+
+Rebuild
+  python figure_cnn_main_data.py ; python panelB_prob_ci.py
+  /cvmfs/.../r/4.5.0/bin/Rscript make_figure_cnn_interpretability.R
+
+Constructs tested but deliberately NOT drawn, worth a sentence in the text
+  acc_s3max (TTTCTTCTCTCTCCCTGCAGGTG, score3 forced above 16, near the MaxEntScan
+    optimum) moves the median by at most +0.02 and falls below baseline at 4 copies:
+    the better the acceptor by MaxEnt, the less this model wants it.
+  acc_best (the MaxEntScan optimum itself) is negative at every dose.
+  acc_noC (the T-rich unit) is excluded because its own shuffle scores HIGHER than
+    the intact sequence, so the effect there is composition, not order; that is why
+    the controls are drawn rather than subtracted throughout.
+  acc_model (61% pyrimidine, 28% G) reaches 0.916 at one copy; acc_canon is drawn
+    instead because it answers the objection that acc_model does not look like a
+    3' splice site, and the preference survives the constraint.

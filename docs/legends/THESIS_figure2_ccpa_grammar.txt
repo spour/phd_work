@@ -1,0 +1,120 @@
+FIGURE 2 (panels A-F): cCPA sites are sequence-competent
+Files: figure2.pdf / figure2.png
+Plotted by: scripts/make_figure2.R .    Stats by: scripts/figure2_stats.py
+Motif densities by: scripts/featurize_shortlist_cpa.py
+
+--------------------------------------------------------------------------------
+CAPTION
+--------------------------------------------------------------------------------
+
+Figure X. Competitor CPA (cCPA) sites carry the same cleavage-and-polyadenylation
+grammar as canonical 3' ends. All panels describe the 43,547 analysis-set cCPA
+sites (intragenic positions that every model scored at or above their gene's own
+annotated 3' end) and the 6,583 canonical sites, genome-wide, from cross-fitted
+model predictions. (A) Inter-model peak convergence: the spread (maximum minus
+minimum) of the random-forest, logistic-regression and CNN peak centres for each
+cCPA site (n = 43,547). The three independently trained models place the site
+within a few nucleotides of each other (median 5 nt; 80.4% within 50 nt, 18.5%
+beyond 60 nt), so a cCPA call is a property of the sequence rather than of one
+architecture. (B) Within-gene rank of the canonical site among its own gene's cCPA
+sites under APARENT2, ties counted as half, binned by the number of cCPA sites in
+the gene (n genes above each point; 4,332 genes; error bars are 95% CIs, dashed
+line is no preference). A gene with n cCPA sites can only produce ranks on a
+lattice of n + 1 values, so a raw histogram spikes at 0.5 and 1.0 for arithmetic
+reasons; binning by contest size shows the statistic sits near 0.5 at every size
+(overall 0.477, 95% CI 0.465-0.489). (C) Positional density of PAS hexamers per
+peak (AATAAA plus the 12 commonest single-substitution variants) in a +/-100 nt
+strand-oriented window, for real sequence (solid) and a dinucleotide-preserving
+shuffle null (dashed, 20 Altschul-Erikson shuffles per peak); 9-nt moving average.
+Both classes show the same sharp PAS peak at -23 nt, ~8-fold
+above the composition-matched null, so the signal is a positioned hexamer and not
+dinucleotide-composition noise (PAS present in the -50..0 zone: 96.1% of canonical
+and 98.8% of cCPA peaks, versus 37.9% and 35.3% under shuffle). (D) Pooled
+APARENT2 ROC for discriminating canonical from cCPA sites and (E) the matching
+precision-recall curve, over the 5,898 canonical and 38,186 cCPA peaks with an
+APARENT2 score. APARENT2 does not separate the classes (AUROC 0.478, 95% CI
+0.470-0.485, chance 0.500; AUPRC 0.134, 95% CI 0.129-0.138, chance 0.134). E is the
+informative panel: canonical sites are 13.4% of the set, so the no-skill AUPRC is
+0.134, not 0.5. (F) Positional density per peak of four CPA motif classes, on
+independent y scales: PAS hexamers, CFIm/UGUA (TGTA), U-rich (T) and GU-rich
+(GT/TG), same window and smoothing as C. Canonical and cCPA profiles are
+superimposable in shape and position, including the upstream PAS peak and the
+downstream U-rich/GU-rich element; the only visible class difference is a modestly
+lower upstream UGUA density at cCPA sites (mean count 0.68 versus 0.84 per peak).
+Blue, canonical 3' ends; orange, cCPA sites throughout.
+
+Interpretive caveat to keep with the figure: every panel is descriptive sequence
+composition, and the sites were selected because sequence models scored them at or
+above the gene's own canonical site. Sequence competence here is a property of the
+construction of the set, not independent evidence that these sites are used.
+
+--------------------------------------------------------------------------------
+SHORT VARIANT
+--------------------------------------------------------------------------------
+
+Figure X. cCPA sites are sequence-competent. Blue, canonical 3' ends (n = 6,583);
+orange, analysis-set cCPA sites (n = 43,547); genome-wide, cross-fitted
+predictions. (A) Spread of the random-forest, logistic-regression and CNN peak
+centres per cCPA site: median 5 nt, 80.4% within 50 nt. (B) APARENT2 within-gene
+rank of the canonical site among its own gene's cCPA sites, binned by contest size
+(4,332 genes, 95% CIs, dashed line = no preference); overall 0.477 [0.465, 0.489].
+(C) PAS hexamer density per peak, +/-100 nt, real (solid) versus a
+dinucleotide-preserving shuffle null (dashed, 20 shuffles per peak), 9-nt moving
+average: both classes show the same upstream peak far above the null. (D, E)
+Pooled APARENT2 ROC and precision-recall over the 5,898 canonical and 38,186 cCPA
+peaks with a score: AUROC 0.478 [0.470, 0.485] and AUPRC 0.134 [0.129, 0.138]
+against a 0.134 baseline. (F) Positional density of PAS, UGUA, U-rich and GU-rich
+motifs on independent y scales; the two classes are superimposable. The sites were
+selected by sequence models, so this competence is a property of the set's
+construction, not evidence of use.
+
+--------------------------------------------------------------------------------
+PROVENANCE
+--------------------------------------------------------------------------------
+
+Plotting        scripts/make_figure2.R [indir]     -> figure2.pdf, figure2.png
+Statistics      scripts/figure2_stats.py           -> fig2_*.tsv
+Motif densities scripts/featurize_shortlist_cpa.py -> shortlist_cpa.parquet,
+                                                      shortlist_cpa_density.tsv,
+                                                      shortlist_cpa_density_counts.tsv
+
+Panel -> data file
+  A  fig2_dispersion.tsv        43,547 rows, one spread_nt per cCPA site
+  B  fig2_rank_binned.tsv       6 contest-size bins; overall value in fig2_aparent.tsv
+  C  shortlist_cpa_density.tsv  motif %in% c("PAS","PAS (dinuc null)")
+  D  fig2_roc.tsv               AUROC + CI in fig2_aparent.tsv
+  E  fig2_pr.tsv                AUPRC + CI + baseline in fig2_aparent.tsv
+  F  shortlist_cpa_density.tsv  motif %in% c("PAS","UGUA","U-rich","GU-rich")
+  n  fig2_counts.tsv            keyed by the OLD panel letters; make_figure2.R remaps
+                                them with OLD2NEW <- c(A="A", C="B", D="C", B="F")
+  supporting: fig2_motifs.tsv (per-class motif count means + CIs),
+              fig2_null.tsv (has_PAS real vs shuffle), fig2_scores.tsv, fig2_rank.tsv,
+              fig2_overview.tsv
+
+Upstream inputs
+  shortlist_crossfit_windows.parquet  peaks + rf_center / lr_center / cnn_center
+  shortlist_cpa.parquet               50,130 rows = 43,547 cCPA + 6,583 canonical,
+                                      motif counts, dinuc-null counts, aparent2_prob
+  cpa_peaks_final.parquet             in_analysis_set filter (--peaks)
+  ../train/data/hg38.fa               sequence for the +/-100 nt windows
+
+Parameters
+  window +/-100 nt strand-oriented; density smoothed with a 9-point moving average in R
+  null: 20 dinucleotide-preserving (Altschul-Erikson 1985) shuffles per peak, seed 0
+  PAS = AATAAA + ATTAAA TATAAA AGTAAA AAGAAA AATATA AATACA CATAAA GATAAA AATGAA
+        TTTAAA ACTAAA AATAGA   (Beaudoing 2000)
+  UGUA = TGTA; U-rich = T positions; GU-rich = GT/TG dinucleotides
+  scalar summaries: PAS zone = -50..0, DSE = 0..+50
+
+Rebuild
+  python3 scripts/figure2_stats.py --shortlist shortlist_crossfit_windows.parquet \
+      --cpa shortlist_cpa.parquet --peaks cpa_peaks_final.parquet \
+      --cpa_bg_auroc 0.991 --out .
+  Rscript scripts/make_figure2.R .
+
+Two asymmetries to be aware of before quoting n values
+  1. The cCPA class is the 43,547 analysis-set competitors, but the canonical class
+     is all 6,583 genes, not the 4,847 that survive the funnel in
+     figure_analysis_set_funnel. Panels C and F therefore average over 50,130 peaks.
+  2. Panels D and E drop peaks with no APARENT2 score (38,186 of 43,547 cCPA and
+     5,898 of 6,583 canonical), so their n is smaller than every other panel's.

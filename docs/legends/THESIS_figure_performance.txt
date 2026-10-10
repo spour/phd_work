@@ -1,0 +1,157 @@
+Figure: genome-wide CPA identification, every model against the baseline
+Methods, numbers, results, and the figure caption
+========================================================================
+
+The figure places the sequence CNN and the splicing-feature models on one axis against a defined
+baseline, on a single held-out split, with one metric declared primary.
+
+
+PART I   METHODS
+================
+
+I.1  TASK AND WHY THE PRIMARY METRIC IS WITHIN-GENE
+----------------------------------------------------
+The task is to identify the real 3' end among the candidate peaks of a gene. Each gene contributes
+one real 3' end and its own competitors, which are filtered baseline-model false positives.
+
+The primary metric is the WITHIN-GENE WIN RATE: for each gene, the fraction of its competitors that
+the model ranks below the real 3' end, ties counted as 0.5, then averaged over genes. It answers the
+question the task actually asks and it is invariant to any per-gene shift in score.
+
+Pooled AUROC and AUPRC treat all 14,198 peaks as one list. They therefore also reward a model for
+separating gene A's peaks from gene B's, which the task never asks about. They are reported for
+comparability with other work and are marked "reference" on the figure.
+
+The disagreement between the two is not a technicality and is why both are drawn. See II.3.
+
+I.2  DATA
+---------
+All models are scored on the same held-out split: 1,623 genes, 14,198 peaks, of which 1,623 are real
+3' ends and 12,575 are competitors, a base rate of 0.1143. The split is by gene, so no gene
+contributes to both training and test.
+
+I.3  THE BASELINE
+-----------------
+Chance, computed analytically rather than simulated, and drawn both as a row and as the dashed
+reference line in every panel:
+
+  win rate   0.5000    by definition
+  P@1        0.2923    the mean over test genes of 1 / (1 + number of competitors)
+  AUROC      0.5000    by definition
+  AUPRC      0.1143    the base rate
+
+P@1's chance value is not 0 and not 0.5; it depends on how many competitors each gene has, which is
+why it is computed from the test genes rather than assumed.
+
+I.4  THE MODELS
+---------------
+Every row is scored on the split above. The file records for each row whether it was refitted,
+rescored from locked coefficients, or read from saved per-peak scores.
+
+  acceptor 3'ss          1 feature.   Maximum MaxEntScan score3 upstream of the peak.
+  window GC              1 feature.   GC fraction in [-500, 0).
+  GC dip depth           1 feature.   Depth of the GC dip in each site's own frame.
+  splice, scalars        3 features.  Scalar splice summaries.
+  splice, positional    51 features.  Binned U1 and acceptor features, scored from locked
+                                      coefficients rather than refitted.
+  splice, binned       126 features.  The full binned splice set.
+  splice + dip depth    52 features.  Positional splice plus the GC dip scalar.
+  splice + GC per bin   76 features.  Positional splice plus positional composition. A different
+                                      axis from the rows above: splice biology plus composition.
+  boosted tree          51 features.  Gradient-boosted trees on the positional splice features.
+  sequence CNN                        Per-peak scores from cnn_model_scores.npz, not refitted.
+
+Two rows are marked as illustrations rather than ladder steps, drawn with open marks: window GC,
+which is a pooled-versus-within-gene illustration, and the boosted tree, for the reason in II.3.
+
+I.5  INTERVALS
+--------------
+Within-gene win rate carries 95% intervals bootstrapped over genes. P@1 and the pooled metrics are
+drawn as points; their intervals are in cnn_metrics.tsv for the CNN rows and are omitted here to
+keep four panels legible.
+
+
+PART II   RESULTS
+=================
+
+II.1  THE LADDER
+----------------
+                              win rate      95% CI            P@1     AUROC    AUPRC
+  chance                        0.5000                       0.2923   0.5000   0.1143
+  acceptor 3'ss                 0.6198   [0.5993, 0.6389]    0.3980   0.6111   0.1492
+  window GC                     0.6297   [0.6107, 0.6489]    0.4258   0.6114   0.1639
+  GC dip depth                  0.6297   [0.6105, 0.6478]    0.4054   0.6134   0.1544
+  splice, scalars               0.6656   [0.6484, 0.6836]    0.4270   0.6364   0.1575
+  boosted tree, splice          0.6834   [0.6650, 0.7011]    0.4559   0.8576   0.5079
+  splice, positional            0.6957   [0.6785, 0.7136]    0.4590   0.6631   0.1877
+  splice, binned                0.7101   [0.6939, 0.7286]    0.4800   0.6716   0.2002
+  splice + dip depth            0.7135   [0.6965, 0.7318]    0.4861   0.6865   0.2093
+  splice + GC per bin           0.7400   [0.7234, 0.7581]    0.5182   0.7049   0.2188
+  sequence CNN                  0.8211   [0.8062, 0.8364]    0.6476   0.8185   0.4492
+
+II.2  WHAT THE LADDER SHOWS
+---------------------------
+The acceptor alone is worth +0.120 over chance, and it is the single strongest one-feature splice
+signal in the set. Three splice scalars reach 0.666 and the positional treatment 0.696, so most of
+the splice signal is in WHERE the sites are rather than how strong they are: going from 3 scalars to
+51 positional features buys +0.030, while the acceptor's own strength buys +0.120 from nothing.
+
+Adding positional composition to positional splice gives the best engineered model, 0.740. That row
+is a different axis from the ones below it and is labelled as such.
+
+The sequence CNN reaches 0.8211 [0.8062, 0.8364], which is +0.081 over the best engineered model and
++0.321 over chance. Its interval does not overlap that of any other row. Read as precision at 1, it
+puts the real 3' end at the top of its gene in 64.8% of genes against 51.8% for the best engineered
+model and 29.2% for chance.
+
+So roughly 75% of the total gain over chance is reached by hand-built splice and composition
+features, and the CNN adds the remaining quarter from sequence alone.
+
+II.3  WHY BOTH METRIC FAMILIES ARE DRAWN
+-----------------------------------------
+The boosted tree is the case that justifies the whole convention. It reaches a pooled AUROC of 0.858
+and a pooled AUPRC of 0.508, both far above every other row including the CNN's 0.818 and 0.449. On
+the primary metric it sits at 0.683, BELOW the ridge on the same 51 features at 0.696.
+
+The tree is reconstructing gene-level context, which separates genes from one another and inflates
+any pooled metric, while gene-centring removes exactly that. A reader shown only panels C and D
+would conclude the boosted tree is the best model in the figure. It is not the best model for this
+task.
+
+The same row is also the only one sensitive to input storage precision: 0.6834 on float64 inputs
+against 0.6797 if the same channels are read back from their float32 cache, where the ridge gives
+0.6957 either way.
+
+II.4  WHAT THIS FIGURE DOES NOT SHOW
+-------------------------------------
+It compares models at ranking candidates WITHIN a gene, on peaks that a baseline model already
+proposed. It is not a measure of de novo genome-wide discovery, since the candidate set is given.
+The competitors are that baseline model's false positives, so the task is deliberately the hard
+residual it leaves behind rather than the easy separation it already achieves.
+
+
+PART III   FIGURE CAPTION
+=========================
+
+  Figure N. Genome-wide CPA identification: sequence CNN and splicing-feature models against
+  chance.
+
+  All models scored on the same held-out split of 1,623 genes and 14,198 peaks, 1,623 real 3' ends
+  and 12,575 competitors, base rate 0.1143. Rows are ordered by the primary metric and give the
+  number of features in parentheses. Filled marks are steps of the feature ladder; open marks are
+  the two rows that illustrate a point rather than extend it. Dashed lines are chance in each
+  metric: 0.5 for win rate and AUROC, 0.2923 for P@1 computed from the test genes' competitor
+  counts, and the 0.1143 base rate for AUPRC.
+
+  (A) Within-gene win rate, the primary metric: the gene-averaged fraction of a gene's competitors
+  ranked below its real 3' end, ties 0.5, with 95% intervals bootstrapped over genes. (B) Precision
+  at 1: the fraction of genes whose top-ranked peak is the real 3' end. (C, D) Pooled AUROC and
+  AUPRC over all peaks, shown for comparability and marked as reference, because pooling also
+  rewards separating one gene's peaks from another's, which this task does not ask for.
+
+  The boosted tree shows why both families are drawn: it is highest in (C) and (D) at 0.858 and
+  0.508 while sitting below the ridge on the same features in (A), because it reconstructs the
+  gene-level context that gene-centring removes.
+
+  The sequence CNN reaches 0.8211 [0.8062, 0.8364], against 0.7400 for the best engineered model and
+  0.5000 for chance.

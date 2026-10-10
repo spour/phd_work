@@ -1,0 +1,254 @@
+Does the polyadenylation CNN read splice sites?
+Implantation, controls, and a search over sequence space
+========================================================
+
+
+1  QUESTION
+-----------
+A convolutional network trained to separate real 3' ends from competitor peaks reaches a within-gene
+win rate of 0.821 and a pooled AUROC of 0.818. Splice sites are the strongest single sequence
+feature in the surrounding biology: the acceptor alone separates the two classes at a win rate of
+0.620 and an AUROC of 0.611. The question is whether the network uses them, and if not, what it uses
+instead of them.
+
+Attribution methods answer this only weakly, because a saliency map cannot distinguish a feature the
+model reads from a feature correlated with one it reads. Implantation is causal: write a sequence
+into a real genomic window, re-score, and the change is attributable to the sequence written.
+
+
+2  METHODS
+----------
+
+2.1  MODEL AND DATA
+The reported model is the one this project trains in cnn_train.py, a convolutional network over a
+2,500 nt window centred 2,000 nt downstream of the window start, saved as cnn_model.pt at epoch 6.
+Training used BCEWithLogitsLoss with pos_weight = n_negative / n_positive = 8.945, dropout 0.4,
+learning rate 1e-3, weight decay 1e-6, batch 128, early stopping with patience 10.
+
+The analysis set is 48,394 peaks, split by GENE so no gene contributes to more than one split:
+
+  train  27,658    2,781 real 3' ends   24,877 competitors
+  val     6,538      443 real 3' ends    6,095 competitors
+  test   14,198    1,623 real 3' ends   12,575 competitors
+
+Competitors are filtered baseline-model false positives, that is, peaks the upstream model called
+that are not real 3' ends. Every number below uses the test split only, and uses ALL of it: the
+12,575 are every held-out competitor, not a subsample. Windows containing an N token are excluded;
+in the test split this removes none.
+
+CALIBRATION CAVEAT, which governs how the probability axis may be read. Because training was class
+balanced by pos_weight, the network's output is calibrated to a 50/50 prior rather than to the 11.4%
+prevalence of real 3' ends. An untouched competitor therefore has a median predicted probability of
+0.6251, not something near 0.114. Probabilities here are the raw sigmoid of the network's own logit
+and are a relative scale, not posterior probabilities that a peak is a real 3' end. Ranking results
+are unaffected, since win rate and AUROC depend only on the order of scores. The checkpoint also
+stores a temperature of 1225.80 from a validation fit; dividing logits by that would collapse every
+prediction onto 0.5, so the fit is degenerate and is not applied anywhere in this work.
+
+2.2  IMPLANTATION ASSAY
+A construct is written over the native bases at a fixed position 230 nt upstream of the cleavage
+site, in every window of the chosen background, and the window is re-scored. The reported quantity
+is either the mean change in logit or the median predicted probability across windows. Tandem dose
+series repeat the unit n times, so the insert grows with n and displaces that much native sequence.
+
+Two backgrounds are used. Real 3' end windows (n = 1,623) are used for the searches, since that is
+where a 3' end signal should operate. Competitor windows (n = 12,575) are used for the reported
+figure, for two reasons: real 3' ends already sit at a median probability of 0.952 and an activating
+construct has no room to rise there, and "does adding a splice site to a competitor make the model
+call it real" is the more direct question.
+
+Earlier versions of this assay reported the best of 60 implantation positions. That was dropped.
+The maximum is an upward-biased statistic taken separately for each construct and each control, and
+it was shown to both inflate and mask effects; every number below is at a single fixed position.
+
+2.3  NEGATIVE CONTROLS
+Two, and both are reported, because neither is flat everywhere and choosing one after seeing the
+result would hide that.
+
+  MONONUCLEOTIDE SHUFFLE (20 draws). A permutation of the insert's own bases. Holds length and base
+  composition exactly and varies only the order. Answers: would any sequence of these letters do
+  this?
+
+  DERANGEMENT (all 9). Every base mapped to a different base under a fixed permutation of {A,C,G,T}
+  with no fixed point, applied to the whole insert. Holds length and position and nothing else.
+
+The dinucleotide shuffle used in earlier rounds was abandoned: for a poly-pyrimidine construct it
+returned the motif itself in 10 of 10 draws, so it was not a control at all.
+
+The two disagree in an informative way. For the donor the derangement is much the flatter, staying
+within 0.015 of baseline across all eight doses while the shuffle drifts to 0.564. For the acceptors
+it is the reverse. Agreement between them indicates arrangement; disagreement localises the effect
+to composition.
+
+2.4  DERIVING THE IMPLANTED SEQUENCES
+Nothing implanted is a consensus string from a database.
+
+DONOR, CAGGTGAGT. The plain argmax of the U1 snRNA duplex free energy over all 4^9 = 262,144 9-mers,
+decoded from the precomputed landscape and asserted in the pipeline rather than trusted. Note it is
+NOT the textbook donor: the consensus string carried in cnn_interp_lib is CAGGTAAGT, and the
+physical optimum differs from it at one position.
+
+ACCEPTOR, TTTAACTTTCTTTTTTACAGACG. Derived from THE MODEL, not from an external measure. Greedy hill
+climbing over single-base substitutions maximising the mean change in logit over 256 real 3' end
+windows: at each step all 21 free positions by 3 alternatives are evaluated, the best is accepted,
+and the search stops when none improves. Constraints are enforced at EVERY step so the search never
+leaves the feasible set: AG pinned at positions 19 and 20, MaxEntScan score3 at least 10, the 18 nt
+tract at least 80% pyrimidine, and no G anywhere in the tract. Three restarts from random feasible
+seeds. Each arm is therefore a LOWER bound, since three greedy restarts do not exhaust 4^21
+sequences.
+
+2.5  DERIVING THE POSITION WEIGHT MATRICES
+Both logos use one recipe with the measure swapped, which is the comparison they are there to make:
+keep every sequence whose own measure lies within a threshold of that measure's optimum, weight each
+linearly by closeness, weight = value - (optimum - threshold), then count weighted bases by position.
+
+  DONOR. Exhaustive. All 262,144 9-mers are already scored, so the 115 within 2 kcal/mol of the
+  optimum are kept. A physical cut rather than a rank cut, so 115 is a result and not a choice. GT
+  was not pinned; it appears anyway at intron positions 1 and 2, which is the check that the recipe
+  recovers a known motif without being told to.
+
+  ACCEPTOR. The 23 nt register has 4^21 feasible sequences, so the ensemble is SAMPLED by
+  Metropolis-Hastings rather than enumerated: target exp(delta / temperature) restricted to the same
+  feasible set as the search, proposal one random feasible single-base substitution, 128 chains for
+  900 steps with the first 200 discarded. 668 distinct sequences within 0.272 of the best delta
+  found, consensus TTTTTCTCTTTTTTTTACAGCGT at a mean 1.25 bits per column.
+
+Sampling temperature must scale with the height of the peak. A fixed 0.08 held the chains on the
+unconstrained acceptor, whose optimum is near +1.85, but on the constrained one at +0.82 the same
+value gave 0.70 acceptance, the chain mean fell from +0.80 to +0.10, and only 7 distinct near-optimal
+sequences were recovered, which is a single sequence drawn as a logo. Temperature is now set from the
+seed's own delta, giving 0.035 here and an acceptance of 0.09.
+
+2.6  STATISTICS
+Confidence intervals on the median probability are 95% percentile bootstraps over windows, 2,000
+resamples. Control bands are the range spanned by the two control families, each plus or minus the
+standard error of its own mean over draws; the standard deviation across individual draws is larger
+and is reported separately. Permutation tests use 500 permutations of a sequence's own bases and
+report the empirical p and a z against that null. No sklearn or scipy is used; AUROC, logistic
+regression and Wilcoxon are implemented inline.
+
+
+3  RESULTS
+----------
+
+3.1  ACCEPTORS CHOSEN BY MAXENTSCAN DO NOTHING
+The MaxEntScan score3 optimum, TTTCCTCTCTCTCCCCGCAGGTG at score3 17.17, is the best 23 nt acceptor
+that exists by that measure. Implanted into real 3' end windows it moves the logit by -0.138, and
+against 500 permutations of its own bases it sits at z = -0.5 with p = 0.66. It is statistically
+indistinguishable from a shuffle of itself.
+
+3.2  WHERE A POSITIVE EFFECT WAS FOUND, IT WAS COMPOSITION
+A T-rich acceptor, TTTTTTTTTGTGTGTTTTAGGTT at score3 14.38, gives a visible raw effect of +0.221.
+Its own shuffles give +0.321. The intact sequence sits 0.100 BELOW a random reordering of its own
+letters: z = -0.9, p = 0.79. The gain belonged to the bases and survived reordering them.
+
+The two controls disagree in sign here, which is the diagnosis. Against derangements the same
+sequence sits +0.357 ABOVE, because substitution turns a T tract into an A, C or G tract and the
+model dislikes all three, so the substitution control pays the sequence for its composition. The
+disagreement widens with dose, reaching +1.211 against -0.908 at seven copies.
+
+3.3  SEARCHING FOR WHAT THE MODEL WANTS FINDS A DIFFERENT ACCEPTOR
+Inverting the question and searching FOR model score under a score3 floor of 10 returns
+ACGGTGTACTTTTGTTGCAGGTG at score3 10.04, worth +1.880, roughly fourteen times the score3 optimum and
+in the opposite direction. Against 500 permutations of its own bases it reaches z = +15.4, with 0 of
+500 draws matching it. All three independent restarts converged on the pentamer TGTAC.
+
+Saturation mutagenesis localises it. Every costly position lies in 1 to 13 and nothing in 17 to 23.
+Scrambling the TGTAC costs 1.58 of the 1.88; replacing it with AAAAA costs 1.66; a single change
+TGTAC to TGCAC costs 0.87.
+
+3.4  THE AG IS LARGELY DISPENSABLE, AND CAN BE MADE TO MATTER ONLY AT A PRICE
+For that sequence, mutating the invariant AG to AC costs -0.034, that is nothing, while score3
+collapses from 10.04 to 1.98. Scoring all sixteen dinucleotides at positions 19 to 20 shows AG
+ranking 7th of 17 options including deletion, with six alternatives beating it.
+
+A search that explicitly required every way of destroying the AG to cost score returns
+CCATGCCTTTGATCCTGCAGATG at score3 10.38, where AG ranks 1 of 17 and nothing beats it. This is the
+only sequence in the project for which that holds. The margin is small, +0.098 over the next best
+dinucleotide, and the price is steep: activation falls from +1.880 to +0.567, a trade of roughly
+three to one.
+
+3.5  THE BETTER THE ACCEPTOR BY MAXENTSCAN, THE LESS THE MODEL WANTS IT
+Repeating the search under progressively stricter definitions of "still an acceptor":
+
+  arm         sequence                    delta    score3   tract pyr   tract G
+  floor10     GTCCTTTTGTACCCCCGTAGGTT    +1.137    10.10      0.78       0.17
+  floor12     TAACTGCTGTGTTCCTGCAGGTG    +1.288    12.06      0.67       0.22
+  floor14     TGTTTTTCTGTCTTTTGCAGATG    +0.550    14.36      0.83       0.17
+  floor16     TTTCTTCTCTCTCCCTGCAGGTG    +0.049    16.07      0.94       0.06
+  pyr80       CGTTTTTTCTTTTTTTACAGACG    +0.779    10.71      0.89       0.06
+  pyr80_noG   TTTAACTTTCTTTTTTACAGACG    +0.830    10.28      0.83       0.00
+
+Two results. First, the Gs are not the point: forcing the tract to at least 80% pyrimidine with no G
+at all still returns +0.830, from a sequence that reads like a textbook acceptor. Second, score3 IS
+the point, and inversely: raising the floor toward the MaxEnt optimum collapses the best achievable
+model score to +0.049.
+
+The mechanism is C. A polypyrimidine tract is C or T and score3 treats them as near
+interchangeable, so a high score3 forces the tract toward C. This model does not treat them as
+interchangeable: in the exhaustive 6-mer scan, C runs are the most repressive 6-mers of all 4,096
+and T runs are among the most activating. Read through that scan:
+
+  unit                       C    T   C/(C+T)   6-mers negative   mean percentile
+  floor16, score3 16.07      8    9    0.47        13 of 18             32
+  pyr80_noG, score3 10.28    3   12    0.20         0 of 18             91
+  MaxEnt optimum, 17.17     10    7    0.59        18 of 18             15
+
+The floor-16 sequence is 94% pyrimidine, which is what makes it look like a textbook acceptor, but
+nearly half of those pyrimidines are C.
+
+3.6  THE REPORTED PANEL
+Implanted into all 12,575 held-out competitor windows, whose untouched median predicted probability
+is 0.6251:
+
+  3' splice site  TTTAACTTTCTTTTTTACAGACG, score3 10.28, tract 83% pyrimidine, no G
+    1 copy   0.799  [0.792, 0.805]      shuffles 0.642    derangements 0.596
+    2        0.932  [0.930, 0.935]      shuffles 0.676    derangements 0.579
+    3        0.975  [0.975, 0.976]      shuffles 0.689    derangements 0.560
+    4        0.985  [0.985, 0.986]      shuffles 0.706    derangements 0.538
+
+  5' splice site  CAGGTGAGT, the strongest U1 duplex 9-mer
+    1 copy   0.593  [0.584, 0.604]      shuffles 0.620    derangements 0.626
+    4        0.451  [0.439, 0.462]      shuffles 0.593    derangements 0.624
+    8        0.331  [0.320, 0.341]      shuffles 0.564    derangements 0.610
+
+The two run in opposite directions by comparable amounts, +0.36 and -0.29 in probability, while both
+control families stay near the untouched baseline. The intervals are narrow, roughly 0.001 at four
+acceptor copies, because the sample is every held-out competitor rather than a subsample.
+
+3.7  HOW FAR THE DOSE SERIES CAN BE READ
+Carrying the units to 24 copies shows the logit never saturates: the acceptor gains about +1.6 per
+copy throughout, reaching +30.97 at 24 copies with its derangement control tracking within 0.34.
+What fails is interpretation, in two ways.
+
+Strong activators exhaust the probability scale and then leave the data. Median probability passes
+0.999 at three copies. The share of windows whose logit exceeds the highest value the model emits on
+any held-out sequence, +16.60, crosses 5% at seven copies, 39.7% at eight, 83.3% at nine and 100% at
+fourteen.
+
+Weak units never saturate because they never arrive; they are overtaken by length. The T-rich
+acceptor peaks at three copies and falls to -1.111 by twelve, while its derangement control keeps
+climbing. A separate homopolymer series shows why: past about 46 nt every homopolymer lands between
+-0.4 and -2.0 regardless of base, and at 161 nt poly-T is MORE repressive than poly-C, the reverse
+of their order at length 6.
+
+Both failure modes bite by about four copies, which is where the reported series stops.
+
+
+4  LIMITATIONS
+--------------
+The searches are greedy with three restarts over 4^21 sequences, so every reported optimum is a
+lower bound; a run at floor 10 returned +1.137 where an earlier run with different seeds returned
++1.880, and the trend across constraints is the claim rather than any single value.
+
+Implantation measures what the model does with a sequence written into a context, not what it does
+with sequences as they occur. A construct displaces native bases, which is why every comparison is
+against a length-matched control rather than against the unmodified window alone.
+
+The probability axis is not calibrated, for the reason given in 2.1.
+
+The effect of the acceptor found here is real by permutation but modest in absolute terms, and the
+AG contributes little to it. The honest summary is that this model can be made to respond to an
+acceptor-shaped sequence, that its response is driven by pyrimidine identity rather than by
+splice-site strength, and that it runs opposite to MaxEntScan across the range where MaxEntScan
+discriminates.

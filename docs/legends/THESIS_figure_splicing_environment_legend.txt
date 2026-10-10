@@ -1,0 +1,132 @@
+FIGURE (panels A-D): the splicing environment of real 3' ends
+Files: figure_splicing_environment.pdf / .png
+Plotted by: make_splicing_environment.R   Data by: splice_score_redundancy.py (one scan)
+Companion Methods/Results already in the tree: thesis_section_u1landscape.txt
+
+================================================================================
+JOURNAL-STYLE LEGEND (full)
+================================================================================
+
+Figure X. Real 3' ends occupy splice-donor-depleted sequence relative to
+intragenic competitors, on two redundant measures of the same donor axis.
+All panels derive from a single scan of one transcript-oriented window,
+-2,000 to +500 nt about the peak centre (2,501 offsets per site), over 4,847 real
+3' ends, 43,547 intragenic competitors and 30,000 matched intronic decoys drawn
+from 4,847 genes (one real 3' end and at least one competitor per gene). Offset 0
+is the poly(A) site; negative offsets are upstream along the transcript.
+(A) Metagene density of strong 5' splice sites (MaxEntScan score5 >= 8) in 100 nt
+bins, expressed per kb of scanned sequence, for real 3' ends (blue), competitors
+(orange) and intronic decoys (purple). Lines are unsmoothed bin means; shaded
+ribbons are +/- 1 SEM across sites within a class; the dashed line marks the
+poly(A) site and the shaded field the upstream side. Donor density is depleted at
+real 3' ends and the depletion is confined upstream: in the bin immediately
+upstream (-50 nt, the minimum of the real-end profile) the density is 0.54 +/- 0.033
+per kb at real ends versus 0.76 +/- 0.013 at competitors and 0.87 +/- 0.017 at decoys
+(mean over the full 500 nt upstream, 0.64, 0.81 and 0.87), whereas over +1 to +500
+nt the three classes converge to 0.81, 0.83 and 0.82 per kb. Decoys are intronic
+and matched to competitors on distance to the canonical poly(A) site and on
+splice-site context, so the depletion tracks the 3' end rather than intronic
+location. (B) Within-gene contrast on the same window, reducing each site to the
+number of U1 sites (duplex -dG >= 4 kcal/mol) per kb and each gene to the value at
+its real 3' end minus the mean over its own competitors. Histogram and kernel
+density of the 4,847 per-gene differences; the dashed line marks no difference and
+the solid blue line the mean. Real ends carry 10.9 fewer U1 sites per kb (median
+12.2 fewer; 66.7% of genes below zero; two-sided Wilcoxon signed-rank on the paired
+differences, V = 3,386,212, n = 4,836 after excluding 11 genes with a difference of
+exactly zero, z = -25.35, P < 2.2 x 10^-16). The distribution is unimodal and
+straddles zero, so this is a shift in a population-level property and not a
+per-site discriminator. (C) Joint distribution of the two donor scores over every
+9-mer position of every window. Main panel, the 10,723,361 GT-anchored positions
+(9-mer with G and T at positions 4 and 5, the MaxEntScan donor anchor), binned at
+0.5 kcal/mol x 1 bit with a log10 colour scale; the two scores correlate at Pearson
+r = 0.692, and equally within each class (0.685, 0.691 and 0.694 for real ends,
+competitors and decoys). Inset, all 196,063,340 scanned positions, r = 0.356: the
+correlation is diluted, not contradicted, because only 5.47% of positions carry a
+GT and at the remainder no donor exists for either score to measure. The two
+measurements are therefore treated throughout as one donor axis, and their
+agreement is not counted as independent evidence. (D) Empirical exceedance,
+P(score >= t), pooled over all classes and plotted on a log10 ordinate for U1
+duplex free energy (left) and the MaxEntScan 5' splice-site score (right), with the
+three cuts used in this work marked (orange): -dG >= 4 admits 9.4% of scanned
+positions, -dG >= 7 admits 0.59% and score5 >= 8 admits 0.084% (20.57%, 2.77% and
+1.54% of GT-anchored positions). Each cut lies inside a smoothly decaying tail
+rather than at a break in the distribution: across the two score units either side
+the exceedance falls by a steady 2.1-, 2.4- and 2.0-fold per unit. Histogram edges
+are placed so that 4, 7 and 8 fall exactly on an edge, making P(score >= t) exact
+at each threshold. The thresholds are conventions on a continuum.
+U1 duplex free energy is the ViennaRNA duplexfold energy between each 9-mer read as
+RNA and the U1 snRNA 5' end 5'-ACUUACCUG-3', sign-inverted and reported as -dG in
+kcal/mol, so that larger values indicate stronger predicted U1 binding. No panel
+reports a model, a classifier or a ranking metric.
+
+================================================================================
+TRIMMED LEGEND (for a journal with a word limit)
+================================================================================
+
+Figure X. Real 3' ends occupy splice-donor-depleted sequence relative to
+intragenic competitors. All panels come from one scan of the window -2,000 to +500
+nt about the peak centre, over 4,847 real 3' ends, 43,547 competitors and 30,000
+matched intronic decoys in 4,847 genes; offset 0 is the poly(A) site.
+(A) Density of strong 5' splice sites (MaxEntScan score5 >= 8) per kb in 100 nt
+bins; lines are unsmoothed bin means, ribbons +/- 1 SEM across sites. Depletion at
+real 3' ends is confined upstream: 0.54 versus 0.76 and 0.87 per kb in the -50 nt
+bin, converging to 0.81, 0.83 and 0.82 per kb over +1 to +500 nt. Decoys are
+intronic and matched to competitors on distance to the canonical poly(A) site and
+splice-site context. (B) Per-gene difference in U1 site density (-dG >= 4
+kcal/mol) per kb, real 3' end minus the mean of that gene's competitors (histogram
+and kernel density, n = 4,847 genes; dashed line, no difference; blue line, mean).
+Mean -10.9 and median -12.2 per kb, 66.7% of genes below zero; two-sided Wilcoxon
+signed-rank V = 3,386,212, n = 4,836 (11 zero differences excluded), z = -25.35,
+P < 2.2 x 10^-16. (C) Joint density of U1 duplex free energy and MaxEntScan
+score5 over the 10,723,361 GT-anchored positions (0.5 kcal/mol x 1 bit bins,
+log10 colour): Pearson r = 0.692, and 0.685, 0.691, 0.694 within the three classes.
+Inset, all 196,063,340 scanned positions, r = 0.356, diluted because only 5.47%
+carry a GT. The two scores are one donor axis. (D) Exceedance P(score >= t),
+pooled, log10 ordinate, for each score; marked cuts (orange) admit 9.4%
+(-dG >= 4), 0.59% (-dG >= 7) and 0.084% (score5 >= 8) of scanned positions and lie
+in smoothly decaying tails (2.1-, 2.4- and 2.0-fold per unit score across the two
+units either side), so they are conventions on a continuum rather than breaks in
+the distribution.
+
+================================================================================
+PROVENANCE
+================================================================================
+
+Plotting     make_splicing_environment.R          -> figure_splicing_environment.pdf/.png
+Data         splice_score_redundancy.py           -> splice_env_metagene.tsv        (A)
+                                                     splice_env_gene_delta.tsv      (B)
+                                                     splice_env_wilcoxon.tsv        (B)
+                                                     splice_score_joint.tsv         (C)
+                                                     splice_score_exceedance.tsv    (D)
+                                                     splice_score_stats.tsv         (C, D)
+Class n only u1_5ss_stats.tsv
+Methods text thesis_section_u1landscape.txt        (written by the same R script)
+
+Sites        cpa_peaks_final.parquet, in_analysis_set (see the funnel figure);
+             decoys from decoy_set.npz (task_b16.py), 30,000 drawn at seed 42
+Sequence     ../train/data/hg38.fa, transcript-oriented, upper-cased (soft-masking discarded)
+Lookups      4^9 U1 -dG table (build_u1_lookup.py, ViennaRNA duplexfold vs ACUUACCUG)
+             4^9 MaxEntScan score5 table, byte-identical to maxentpy score5
+
+Parameters   window [-2000, +500] nt (2,501 offsets), 40 nt fetch padding
+             panel A: MaxEnt score5 >= 8, 100 nt bins, +/-1 SEM, NOT smoothed
+             panel B: U1 -dG >= 4 kcal/mol
+             panel C: display bins 0.5 kcal/mol x 1 bit; r from exact running sums, unbinned
+             panel D: histogram edges chosen so 4, 7 and 8 fall on an edge
+
+Rebuild      python splice_score_redundancy.py
+             /cvmfs/.../r/4.5.0/bin/Rscript make_splicing_environment.R
+
+Points a referee is likely to raise, already answered in the tree
+  - Panel A is deliberately unsmoothed: a 3-bin rolling mean lifts the -50 nt
+    minimum from 0.54 to 0.61, so the quoted value would no longer lie on the
+    plotted curve. The SEM ribbons carry the noise.
+  - Scoring every 9-mer rather than only GT-anchored ones does not affect any
+    strong-donor count: no non-GT 9-mer in the 4^9 space exceeds 4.16 bits, so the
+    set of positions at score5 >= 8 is identical either way.
+  - The U1 score is composition-dominated: in u1_threshold_calibrate.py no
+    threshold in [3, 9] reaches an FDR of 0.10 against a dinucleotide-shuffle null
+    (minimum 0.84 at -dG = 7). A U1 site here is a position of favourable
+    composition for U1 hybridization, not a detected motif; no motif claim is made.
+  - The measured 9.40% exceedance at -dG >= 4 agrees to 0.10 percentage points with
+    the 9.30% that calibration found independently on its own peak windows.

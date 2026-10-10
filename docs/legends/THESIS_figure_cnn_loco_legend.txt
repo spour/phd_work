@@ -1,0 +1,127 @@
+FIGURE: CNN architecture (top) + the LOCO comparison (A-D, bottom)
+Files: figure_architecture.pdf / .png      (top schematic)
+       figure_loco_cnn_vs_splice.pdf / .png (panels A-D)
+NOTE: these are TWO separate files. No script composes them; they are stacked at
+typesetting. The bottom file already carries the letters A-D, so the schematic is
+lettered here as (A) and the four panels re-lettered (B)-(E) in the first legend
+below; a variant that keeps the published lettering (schematic unlettered, panels
+A-D) follows it.
+
+================================================================================
+JOURNAL-STYLE LEGEND (schematic as panel A, four panels re-lettered B-E)
+================================================================================
+
+Figure X. A sequence convolutional network outperforms splice features at
+within-gene 3' end discrimination.
+(A) Architecture. The network reads a 2,500 nt one-hot window (-2,000 to +500 nt
+about the candidate cleavage site) through three convolutional blocks: 32 filters
+of width 19 with batch normalisation and an exponential activation, which is the
+layer whose filters are readable as position weight matrices, followed by max
+pooling by 10; 64 filters of width 7 with batch normalisation and ReLU, pooled by
+5; and 96 filters of width 5 with batch normalisation and ReLU, pooled by 2. The
+result is 96 channels over 25 positional bins, giving each output bin a receptive
+field of 378 nt at a stride of 100 nt. That map is flattened to 2,400 values, so
+position is retained rather than pooled away, and passed through a 64-unit dense
+layer (ReLU, dropout 0.4) to a single logit. Layer dimensions in the schematic are
+computed from the layer parameters, not transcribed.
+(B-E) Comparison against the 26-feature splice model, leave-one-chromosome-out over
+the whole analysis set: 4,847 genes and 48,394 peaks (one real 3' end per gene and
+43,547 intragenic competitors, base rate 0.100), 23 folds, every peak scored by a
+fit that never saw its chromosome. Both models use the identical fold definition
+and, inside each fold, a 25% gene holdout of that fold's training genes, on which
+the splice model retunes its ridge penalty and the CNN early-stops; the two differ
+in the model and in nothing else. Blue, sequence CNN; orange, splice model; bands
+and error bars are 95% bootstrap intervals over genes.
+(B) Pooled discrimination over all 48,394 peaks, ROC (left) and precision-recall
+(right). The CNN reaches AUROC 0.815 and AUPRC 0.407 against 0.661 and 0.162 for
+the splice model, on a base rate of 0.100. This panel is shown for reference only:
+a competitor is a different site in the same gene, so a pooled metric rewards
+separating genes rather than separating sites within one.
+(C) Within-gene ranking, the primary comparison: the fraction of genes whose real
+3' end falls in the top k candidates of that gene. Rank counts ties against the
+model, so recall@1 is the strict precision at 1; chance (grey dashed) is the mean
+over genes of min(k, candidates)/candidates, curved rather than linear because
+genes differ in size. The CNN places the real 3' end first in 68.1% of genes
+(95% CI 66.9-69.5%) against 46.5% (45.1-47.9%) for the splice model and 28.7% by
+chance, and the gap persists across k (at k = 10, 97.4% against 94.2%, chance
+90.6%). The corresponding within-gene win-rates are 0.847 (0.838-0.855) and 0.699
+(0.689-0.710).
+(D) Effect of dinucleotide shuffling. Each fitted model, unchanged and not
+refitted, is applied to sequence shuffled across the whole window with the
+Altschul-Erikson algorithm (3 replicates), which holds mononucleotide and
+dinucleotide content exactly, so the global GC and CpG of each window are unchanged
+and only local order and the placement of composition along the window are
+destroyed. Filled bars, real sequence; open bars, shuffled; dashed line, chance.
+The CNN falls from 0.847 to 0.629 (-0.218, 63% of its lift over chance) and the
+splice model from 0.699 to 0.544 (-0.155, 78% of its lift). What survives is
+therefore what global composition alone can do, 37% and 22% of the lift
+respectively; the CNN's advantage rests more on order and position than the splice
+model's does.
+(E) Genome-wide identification of the used 3' end. Fraction of genes whose used 3'
+end is ranked first, mapped over gene length and the number of candidate 3' ends
+that gene carries, for the baseline peak caller and the two models on one shared
+colour scale; each map covers all 15,475 genes with a GENCODE span (85 of 15,560
+have none), each gene appears once, and a hexagon is drawn where at least 12 genes
+fall in it. Genome-wide precision at 1 is 0.577 for the baseline, 0.747 for the
+splice model and 0.821 for the CNN. A gene carrying a single candidate is ranked
+first by any model, and all 8,977 such genes enter the denominator as correct for
+the baseline as well, which is why the baseline is 0.577 rather than zero and why
+it occupies the bottom row of every map; over the 6,583 contested genes alone,
+where the baseline is 0 by construction, the splice model reaches 0.403 and the CNN
+0.577. Length is what buys candidates, so how far each map stays blue upward and to
+the right of that bottom row is what sequence adds. Contested genes are ranked over
+their full candidate sets, 70,723 candidates in total, scored out of fold by the
+same 23-fold scheme; no baseline probability enters either model as an input.
+
+================================================================================
+VARIANT KEEPING THE PUBLISHED LETTERING (schematic unlettered, panels A-D)
+================================================================================
+
+Replace the two headings above as follows and leave the text otherwise unchanged:
+
+  "(A) Architecture."  ->  "Top, architecture."
+  "(B-E) Comparison"   ->  "Bottom, comparison"
+  "(B) Pooled"         ->  "(A) Pooled"
+  "(C) Within-gene"    ->  "(B) Within-gene"
+  "(D) Effect"         ->  "(C) Effect"
+  "(E) Genome-wide"    ->  "(D) Genome-wide"
+
+================================================================================
+PROVENANCE
+================================================================================
+
+Top schematic
+  make_figure_architecture.R  -> figure_architecture.pdf/.png
+  Reads no data. Every dimension and the 378 nt receptive field are COMPUTED in the
+  script from the layer parameters (kernel widths 19/7/5, pools 10/5/2), and
+  asserted (RF == 378, stride == 100, 2500/100 == 25 bins), so the diagram cannot
+  drift from cnn_model_def.py.
+  The model itself: cnn_model_def.py (shared by cnn_train.py and cnn_interpret.py).
+
+Bottom panels
+  make_figure_loco.R          -> figure_loco_cnn_vs_splice.pdf/.png
+  (computes nothing; re-asserts every number that carries the argument)
+  Panel -> file -> producer
+    A (pooled)     figLC_curves.tsv, figLC_summary.tsv   loco_figure_data.py
+    B (recall@k)   figLC_recall.tsv                      loco_figure_data.py
+    C (shuffle)    loco_shuffle.tsv                      loco_figure_data.py
+    D (genome)     cnn_wholegenome_p1.tsv, wg_per_gene.tsv, wg_by_length.tsv
+  CNN LOCO scores come from cnn_loco_train.py; the splice model is refitted inside
+  loco_figure_data.py on the identical folds.
+
+Rebuild
+  python loco_figure_data.py
+  /cvmfs/.../r/4.5.0/bin/Rscript make_figure_loco.R
+  /cvmfs/.../r/4.5.0/bin/Rscript make_figure_architecture.R
+
+Scope discipline the figure enforces in code
+  - Two models only. The script asserts that no GC baseline, acceptor-alone arm or
+    single-split score appears, and that panel C's splice arm is the 26-feature
+    model, not the earlier 51-feature one (whose shuffle bars live in
+    figure_cnn_vs_splice, a single-split comparison, and should not be quoted here).
+  - No panel carries a subtitle; the explanatory text is in the caption block.
+
+Numbers not to mix in
+  The 0.7473 genome-wide P@1 for the splice model comes from
+  splice_model_26_metrics.tsv and is the LOCO figure for THIS model; the same
+  number quoted in older text for the 51-feature model is a different quantity.

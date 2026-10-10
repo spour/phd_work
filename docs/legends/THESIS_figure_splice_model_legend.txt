@@ -1,0 +1,126 @@
+FIGURE (panels A-D): the 26-feature splice model
+Files: figure_splice_model_final.pdf / .png
+Plotted by: make_splice_model_final.R (assembles only; nothing is refitted)
+Model + coefficients: splice_model_26.py    Panel C: recall_at_k.py    Panel D: score_separation.py
+
+================================================================================
+JOURNAL-STYLE LEGEND (full)
+================================================================================
+
+Figure X. Positional U1 duplex density and upstream 3' splice-site strength
+discriminate real 3' ends from intragenic competitors.
+A ridge (L2) logistic model with 26 features was fitted to distinguish each gene's
+real 3' end from the competing intragenic cleavage sites called in the same gene,
+over the 4,847 analysis-set genes (one real 3' end and at least one competitor per
+gene, 48,394 candidate sites).
+(A) Feature construction and model specification. Sequence is read in a
+transcript-oriented window from -2,000 to +500 nt about the candidate cleavage site
+(dashed line) and divided into 25 bins of 100 nt. Each bin contributes one feature,
+the density of U1 duplex sites (predicted U1 snRNA:pre-mRNA duplex -dG >= 4
+kcal/mol) per kb of scanned 9-mer positions (blue, 25 values). A single further
+feature is the maximum MaxEntScan 3' splice-site score anywhere in [-2,000, -126]
+(orange, 1 value), which is a scalar and carries no positional information. The 26
+features are centred within gene and standardised before fitting, and the model is
+evaluated by where it ranks the real 3' end among its own gene's candidates, never
+by a pooled comparison across genes. (B) Ridge coefficients on the same positional
+axis as A, so each bar sits above the sequence it weights; the shaded field is
+upstream of the cleavage site. U1 duplex density carries negative weight throughout
+the upstream region, deepening toward the site to a minimum of -0.23 at -150 nt:
+denser predicted U1 binding just upstream argues against a position being the real
+3' end. The upstream 3' splice-site scalar carries the single largest positive
+weight, +0.30 (plotted to the right of the axis break because it is not positional):
+a strong upstream acceptor argues for it. (C) Within-gene recall as a function of
+rank threshold k, over all 4,847 genes, leave-one-chromosome-out, with the ridge
+penalty retuned inside each fold on a 25% gene holdout of that fold's own training
+genes, so both the fit and the hyperparameter are out of fold at every gene. Rank
+is 1 + the number of competitors scoring at or above the real site, so ties count
+against the model and recall@1 is the strict precision at 1. Blue, observed recall
+with 95% CIs; grey dashed, exact chance for a random scorer, the mean of
+min(k, n_i)/n_i over genes, which is curved rather than linear because genes differ
+in the number of candidates they carry; the shaded band is the gap between them.
+The model places the real 3' end first in 46.5% of genes (95% CI 45.1-47.9%,
+chance 28.7%) and within the top three in 79.8% (78.7-80.9%, chance 69.3%).
+(D) Distribution of model scores at real 3' ends and at competitors, from the same
+leave-one-chromosome-out scoring as C, with each gene's mean score subtracted from
+its own sites so that only within-gene contrasts are shown and every between-gene
+difference is removed before plotting. Violins show the full distribution, boxes the
+interquartile range and median (medians +0.33 and +0.00). The real 3' end outscores
+the mean of its own gene's competitors in 69.9% of genes (95% CI 68.9-71.0%; median
+per-gene difference +0.48, positive in 75% of genes; two-sided paired Wilcoxon
+signed-rank on the per-gene differences, V = 9,486,959, n = 4,847, z = +37.1,
+P < 2.2 x 10^-16). The win-rate and the signed-rank test are one result expressed
+twice, being the same paired estimator, and panel C's recall@1 is recomputed from
+panel D's scores as an equality check, so the two panels are one scoring of the
+data. The separation is a shift of overlapping distributions: roughly a quarter of
+genes run the other way, so this is a population-level property of where real 3'
+ends sit and not a per-site classifier.
+
+================================================================================
+TRIMMED LEGEND (for a journal with a word limit)
+================================================================================
+
+Figure X. Positional U1 duplex density and upstream 3' splice-site strength
+discriminate real 3' ends from intragenic competitors. Ridge (L2) logistic model,
+26 features, over the 4,847 analysis-set genes (one real 3' end and at least one
+competitor each). (A) Feature construction: a transcript-oriented window from
+-2,000 to +500 nt about the candidate site in 25 bins of 100 nt, each contributing
+the density of U1 duplex sites (-dG >= 4 kcal/mol) per kb (blue, 25 values), plus
+one scalar, the maximum MaxEntScan 3' splice-site score over [-2,000, -126]
+(orange). Features are gene-centred and standardised; evaluation is the rank of the
+real 3' end within its own gene. (B) Ridge coefficients on the same positional axis.
+U1 duplex density is negatively weighted upstream, deepest at -150 nt (-0.23); the
+upstream acceptor scalar carries the largest positive weight (+0.30) and is drawn
+off the positional axis. (C) Within-gene recall against rank threshold k, all 4,847
+genes, leave-one-chromosome-out with the penalty retuned in fold; ties count against
+the model. Blue, observed with 95% CIs; grey dashed, exact chance (mean of
+min(k, n_i)/n_i, curved because genes differ in candidate count). Recall@1 0.465
+(0.451-0.479) against chance 0.287; recall@3 0.798 (0.787-0.809) against 0.693.
+(D) Gene-centred scores from the same out-of-fold scoring (violins, boxes show
+interquartile range and median; medians +0.33 and +0.00). The real 3' end beats the
+mean of its own competitors in 69.9% of genes (68.9-71.0%; median difference +0.48,
+positive in 75%; paired Wilcoxon V = 9,486,959, n = 4,847, z = +37.1,
+P < 2.2 x 10^-16). Distributions overlap: this is a population-level shift, not a
+per-site classifier.
+
+================================================================================
+PROVENANCE
+================================================================================
+
+Plotting   make_splice_model_final.R  -> figure_splice_model_final.pdf/.png
+           Panel A is fixed coordinates (a schematic, not plotted data). B, C and D
+           read TSVs and refit nothing; each panel's key number is asserted in the
+           script before the figure is written.
+
+Panel -> data file -> producer
+  A  none (schematic)
+  B  splice_model_26_coefficients.tsv        splice_model_26.py
+     (also splice_model_26_metrics.tsv, the locked held-out numbers)
+  C  recall_at_k.tsv                         recall_at_k.py
+  D  score_separation.tsv,
+     score_separation_sites.tsv              score_separation.py
+
+Inputs     binned_profiles.npz  (u1_dens4 channel, 25 bins)
+           binned_common.py     ACC = spl_upstream_max_me3 = max MaxEntScan score3
+                                over pA-2000 .. pA-126
+           cnn_data.npz         sequence tokens; splice_model_26.py recomputes
+                                u1_dens4 from them and asserts it reproduces
+                                binned_profiles.npz exactly in float32
+Scope      the 4,847 in_analysis_set genes (see the funnel figure)
+
+Rebuild    python splice_model_26.py ; python recall_at_k.py ; python score_separation.py
+           /cvmfs/.../r/4.5.0/bin/Rscript make_splice_model_final.R
+
+Numbers deliberately NOT on this figure, so they are not confused with it
+  splice_model_26_metrics.tsv holds the locked train/val fit scored once on the
+  1,623 held-out test genes: within-gene win-rate 0.6993 [0.6823, 0.7174] and
+  P@1 0.4720 [0.4473, 0.4966] (chance 0.2923, 14,198 peaks). Panels C and D instead
+  report leave-one-chromosome-out over all 4,847 analysis-set genes; the two
+  win-rate estimates agree to four decimals (0.69930 held out, 0.69932 LOCO) but
+  they are different estimates of the same quantity and the script prints both so
+  the panel cannot silently mix them. The 0.7473 whole-genome P@1 quoted elsewhere
+  belongs to the earlier 51-feature model and is recomputed, not carried over.
+
+Model history worth one sentence in the text
+  This supersedes a 51-feature model that also carried a -dG >= 7 density track.
+  Dropping that track changed the win-rate by +0.0036 [-0.0037, +0.0107], so the
+  model halves with no measurable loss.

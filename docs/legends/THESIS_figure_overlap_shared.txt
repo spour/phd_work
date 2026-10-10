@@ -1,0 +1,133 @@
+FIGURE (panels A-D): Concordance of published 3' end datasets, on commonly covered genes
+Files: figure_overlap_shared.pdf / .png
+Plotted by: make_figure_overlap_shared.R
+Panels A-C recomputed by: overlap_shared_recompute.py
+Panel D scored by: overlap_model_scores.py + overlap_rf_dense.py
+Companion methods/results text already in the tree: figure_overlap_shared_notes.txt
+
+--------------------------------------------------------------------------------
+CAPTION
+--------------------------------------------------------------------------------
+
+Figure X. Published 3' end datasets agree only modestly with each other and with
+model calls, once gene coverage is held fixed. Five sets of 3' end positions are
+compared: the canonical 3' end of each gene, the internal competitors (peaks the
+random forest ranks above the canonical site of the same gene), the 3'-seq
+intronic polyadenylation atlas (Singh 2018 merged with Lee 2018), sites of
+telescripting loss under U1 AMO treatment (Oh 2017), and PCF11-dependent premature
+CPA sites. All panels are restricted to the 334 protein-coding genes in which all
+five sets place at least one site (6,814 sites: 356 canonical, 4,027 internal
+competitors, 573 3'-seq atlas, 552 PCF11-dependent, 1,306 U1 AMO). The restriction
+is the point of the figure: low overlap between two datasets otherwise admits two
+explanations, genuine disagreement about where 3' ends lie and simply having
+surveyed different genes, and the unrestricted comparison cannot separate them.
+(A) Empirical cumulative distribution of the distance from each site of the source
+set (one facet per source, header giving its site count) to the nearest site of
+each target set in the same gene; colour is the target set, the dashed line marks
+the 50 nt matching tolerance used throughout, and the x axis is logarithmic.
+Matching is within gene rather than within chromosome, since two sites in different
+genes are not evidence that two datasets found the same 3' end. (B) Pairwise
+containment at 50 nt: C(A into B), the fraction of the row set's sites lying within
+50 nt of any site of the column set. The measure is asymmetric, because the sets
+differ in size by an order of magnitude, and is read across a row; the diagonal is
+undefined. Holding the gene scope fixed raises containment between the external
+sets from 0.004-0.094 to 0.161-0.237, so most of the apparent disagreement between
+these published datasets was differing gene coverage rather than differing calls.
+Agreement is nonetheless modest in absolute terms: even for the best-agreeing pair,
+roughly three quarters of one set's sites have no counterpart within 50 nt in the other
+(3'-seq atlas into competitors 0.237, PCF11-dependent into 3'-seq atlas 0.225,
+3'-seq atlas into PCF11-dependent 0.215). (C) Percentage of each set's sites
+carrying AATAAA or ATTAAA within the 60 nt upstream, read on the annotated strand
+(red), against the same sites translated 5 kb along the chromosome (grey), a
+positional control that preserves local isochore and repeat context while
+destroying the relationship to the 3' end; the printed fold change is observed over
+displaced. Every set but one is strongly PAS-enriched (internal competitors 95.5%,
+11.3-fold; canonical 86.0%, 12.8-fold; 3'-seq atlas 80.1%, 9.0-fold;
+PCF11-dependent 66.3%, 8.3-fold), whereas the U1 AMO set is not (13.9%, 1.5-fold).
+(D) Distribution of baseline model scores at each set's sites, taken as the maximum
+over every model window whose 500 nt span covers the site, so a site scores low only
+if all covering windows do. Left, calibrated random-forest probability from the
+per-nucleotide genome scan; right, CNN percentile of the out-of-fold logit against
+all 70,723 scored windows. Violins show the full distribution, boxes the
+interquartile range and median, and the printed number is the median. Neither model
+saw the three external datasets in training, and both rank U1 AMO lowest of them
+(forest 3'-seq atlas 0.84 > PCF11-dependent 0.81 > U1 AMO 0.71; CNN
+PCF11-dependent 0.75 > 3'-seq atlas 0.64 > U1 AMO 0.63). Logistic regression is
+absent: its scores survive without coordinates, so it cannot be placed on a genomic
+site without retraining.
+
+Read panel D's competitor row with care. Competitors were defined as peaks the
+forest ranks above the canonical site of the same gene, so that row is circular for
+both models. The selection is a within-gene statement and panel D is a marginal one
+pooled over genes, and the two need not agree: within gene on this scope the best
+competitor still outscores the canonical site in 71.9% of genes under the forest,
+while the CNN reverses that to 44.6% (57.7% canonical-first over all 6,583 genes),
+which is what the CNN was trained to do. The three external sets are the honest
+test.
+
+--------------------------------------------------------------------------------
+SHORT VARIANT
+--------------------------------------------------------------------------------
+
+Figure X. Concordance of published 3' end datasets with each other and with model
+calls. Five site sets (canonical 3' ends, internal competitors, 3'-seq IpA atlas,
+PCF11-dependent CPA, U1 AMO), restricted to the 334 protein-coding genes in which
+all five place a site (6,814 sites; counts in the panel A facet headers). (A) ECDF
+of the distance from each source-set site to the nearest site of each target set in
+the same gene; dashed line, the 50 nt tolerance. (B) Containment at 50 nt: the
+fraction of the row set within 50 nt of the column set, asymmetric, read across a
+row. Fixing the gene scope lifts external-set containment from 0.004-0.094 to
+0.161-0.237, so most apparent disagreement was gene coverage; agreement is still
+modest: even the best pair matches only about a quarter of one set. (C) Sites carrying
+AATAAA or ATTAAA within 60 nt upstream (red) against the same sites displaced 5 kb
+(grey), with fold change. All sets are PAS-enriched 8.3- to 12.8-fold except U1
+AMO (13.9%, 1.5-fold). (D) Per-site maximum random-forest probability and CNN
+percentile; medians printed. Both models rank U1 AMO lowest of the three external
+sets. The competitor row is circular for both models, since competitors were
+selected by the forest's within-gene ranking.
+
+--------------------------------------------------------------------------------
+PROVENANCE
+--------------------------------------------------------------------------------
+
+Plotting        make_figure_overlap_shared.R   -> figure_overlap_shared.pdf/.png
+                (reads only TSVs; computes nothing but the ECDFs)
+Panels A-C      overlap_shared_recompute.py    -> shared_distances.tsv,
+                                                  shared_containment.tsv,
+                                                  shared_hexamer.tsv
+Panel D         overlap_scores_sites.tsv (CNN percentile, per site, in_shared flag)
+                overlap_rf_dense.tsv     (rf_dense_max from the genome scan)
+Gene scope      overlap_shared_genes.tsv (334 genes)
+Sequence        /scratch/spour98/jobs/hg38.fa (+ .fai) for the hexamer test
+Companion text  figure_overlap_shared_notes.txt  (full methods, results, limits)
+
+Parameters
+  TOL   = 50 nt matching tolerance (panel A dashed line, panel B threshold)
+  UP    = 60 nt upstream window for AATAAA / ATTAAA
+  SHIFT = 5,000 nt positional control displacement
+  gene assignment by interval containment against GENCODE v43 protein-coding genes
+
+Why these panels were recomputed rather than filtered
+  hiconf_out/ holds the unrestricted versions (distances.tsv, jaccard_matrix.tsv,
+  hexamer.tsv) but only in aggregated form: distances.tsv carries a set pair and a
+  distance with no coordinates, so it cannot be restricted to a gene subset after
+  the fact. The unrestricted three-panel figure is fig_ecdf_heatmap_isect.pdf,
+  drawn by scripts/make_ecdf_heatmap.R from hiconf_isect/.
+
+Rebuild
+  python3 overlap_shared_recompute.py
+  Rscript make_figure_overlap_shared.R
+
+Checks worth quoting if a reviewer asks
+  Within-gene versus chromosome-only matching is identical at 50 nt: mean
+  containment 0.0772 either way over all 20 ordered pairs, no pair inflated. The
+  distance distributions differ only at long range (median 16,111 nt within gene
+  versus 15,633 nt by chromosome), so panel A uses the within-gene version.
+
+Limits (from the notes file, worth carrying into the thesis text)
+  - 334 shared genes is a small, non-random scope biased toward long, highly
+    expressed, multi-isoform genes. Panel B is concordance within genes all five
+    studies detected, not a genome-wide estimate.
+  - Panel D's competitor row is circular for both models.
+  - The 50 nt tolerance is inherited, not tuned; panel A shows the full
+    distribution so its effect is visible.
