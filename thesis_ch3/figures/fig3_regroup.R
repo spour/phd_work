@@ -1,4 +1,4 @@
-# figures 3.3 to 3.8 and 3.10, regrouped from the panels pub/'s scripts build
+# figures 3.3, 3.4, 3.6 to 3.9 and 3.11, regrouped from the panels pub/'s scripts build
 suppressPackageStartupMessages({library(ggplot2);library(patchwork);library(dplyr)})
 setwd("/scratch/spour98/remake_model/updated_HumanGeneEnds/reanal/clean/pub/thesis_ch3")
 source("R/_harvest.R")

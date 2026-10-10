@@ -429,6 +429,4 @@ Script paths are relative to the repo root. Data files are named but not include
 **Notes**
 
 - two splice-model LOCO fits: lambda retuned per fold gives P@1 0.465 (Figures 3.7, 3.9); fixed lambda 0.1 gives 0.463 (Figure 3.14); with the first fit the network-minus-splice difference is 21.6 points
-- binarised acceptor/donor rule (`analysis/splice_model/rule_2x2_final.py`): 1.08-fold over base rate; score3 >= 8 admits 91% of peaks
-- linear joint score z(acc) - z(donor) (`analysis/splice_model/joint_score_final.py`): lowers AUROC; cannot express an acceptor-conditional sign flip
 - confound: the upstream 500 nt is 89% exonic for real ends and 1.5% for competitors; exonic fraction alone gives P@1 0.945 (circular). Figure 3.5 holds against matched intronic decoys, and with both sites >= 90% exonic and <= 10% repeat the network still wins 0.625 of pairs
