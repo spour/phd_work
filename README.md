@@ -27,7 +27,7 @@ Code and figures for my thesis chapters on how a gene's 3′ end is chosen.
 - `acceptor`: 3′ splice site
 - `u1`: U1 and 5′ splice sites
 - `splice_model`: the 26-feature model, SpliceAI and MaxEnt scorers
-- `networks`: CNN and BPNet models and their interpretation
+- `networks`: CNN models and their interpretation
 - `implantation`: in silico insertion tests
 - `figure_data`: tables for specific figures
 - `data_build`: caches and candidate tables
