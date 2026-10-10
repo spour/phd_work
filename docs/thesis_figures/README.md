@@ -82,7 +82,7 @@ Script paths are relative to the repo root. Data files are named but not include
 | LR | 0.983 | 0.827 | 0.758 | 0.93 |
 
 - best-of-three puts the real end first in 47.5% of genes, in the top 10 in 68.9%
-- Jaccard between model peak sets 0.07 to 0.17: the models agree on performance, not on which positions they pick
+- Jaccard between model peak sets 0.07 to 0.17: the models perform alike but pick different positions
 - panel a reads the test metrics from the production model metadata
 - data: `pipeline/make_figure1_data.py`; plot: `pipeline/make_figure1.R`
 
@@ -159,7 +159,7 @@ Script paths are relative to the repo root. Data files are named but not include
 
 - 18 rows: gene, hg38 coordinates of the 500 nt window, strand, score
 - rows match `Cryptic_CPA_sites.hg38.tested_experimental.bed`, a subset of the 40,537-site `Cryptic_CPA_sites.hg38.bed`
-- score = the earlier baseline random forest (Shkurin, Pour and Hughes, "Known sequence features can explain half of all human gene ends"), not the chapter 2 consensus
+- score = the earlier baseline random forest (Shkurin, Pour and Hughes, "Known sequence features can explain half of all human gene ends"), which predates the chapter 2 consensus
 - SHLD2, MYLK, KIF13A and TBL1X have no construct on either gel
 
 **Reporter constructs**
@@ -193,7 +193,7 @@ Script paths are relative to the repo root. Data files are named but not include
 ![Figure 2.9](figures/fig2_9.png)
 
 - five site sets restricted to the 334 protein-coding genes where every set has at least one site: 356 real ends, 4,027 competitors, 573 immune/leukaemia 3′-seq sites, 1,306 U1 AMO sites, 552 PCF11-dependent sites
-- competitors here are all 64,140 from the 6,583 contested genes, not only the analysis set
+- competitors here are all 64,140 from the 6,583 contested genes, a wider set than the analysis set
 - a: distance from each site to the nearest site of each other set in the same gene (log axis, dashed line at 50 nt)
 - b: fraction of each row's sites within 50 nt of a site in each column
 - c: AAUAAA or AUUAAA in the 60 nt upstream, against the same positions moved 5 kb
@@ -328,7 +328,7 @@ Script paths are relative to the repo root. Data files are named but not include
 - P@1 0.465 [0.451, 0.479] against 0.287; top-3 0.798 against 0.693; win-rate 0.699 [0.689, 0.710]
 - 75% of real ends score above the mean of their own competitors; median margin over competitors +0.48, z = 37.1, r = 0.53 (a different quantity from panel b)
 - 176 positional features: P@1 0.494; convolution over bins 0.512 (`thesis_ch3/analysis/splice_positional_features.py`, `thesis_ch3/analysis/splice_model_boost.py`)
-- two-feature arrangement model 0.392 and 0.396, five-fold CV by gene rather than LOCO (`thesis_ch3/analysis/splice_model_expand.py`)
+- two-feature arrangement model 0.392 and 0.396, five-fold CV by gene (`thesis_ch3/analysis/splice_model_expand.py`)
 - a: `analysis/splice_model/recall_at_k.py` (LOCO, lambda retuned per fold, 2,000 bootstraps); b: `analysis/splice_model/score_separation.py`; plot: `plotting/make_splice_model_final.R`
 
 **Figure 3.8. What each model reads, and the network architecture**
@@ -383,8 +383,8 @@ Script paths are relative to the repo root. Data files are named but not include
 - unmodified median 0.625 [0.616, 0.634]
 - acceptor x1 0.799 [0.792, 0.805], x4 0.985; donor x1 0.593 [0.584, 0.604], x8 0.331
 - MaxEnt-optimal acceptor: -0.138 (z = -0.5, P = 0.66); sequence optimised against the network: +1.880 (z = 15.4); pyrimidine tract: +0.830 (`analysis/acceptor/acceptor_agdep_search.py`, `analysis/acceptor/acceptor_floor_sweep.py`)
-- AG to AC in the network-optimised acceptor raises the score by 0.034 (1.880 to 1.915), so the AG is not what the network reads
-- concept erasure (`thesis_ch3/analysis/concept_erasure.py`): the network encodes base composition and U1-site density, not MaxEnt scores, PAS or annotated splice sites
+- AG to AC in the network-optimised acceptor raises the score by 0.034 (1.880 to 1.915), so the network does not depend on the AG
+- concept erasure (`thesis_ch3/analysis/concept_erasure.py`): base composition and U1-site density are encoded in the network; MaxEnt scores, PAS and annotated splice sites are not
 - native element removal (`thesis_ch3/analysis/interpret_deep.py`): removing UGUA costs 0.23 to 0.25 logit, the largest effect; the PAS costs 0.04
 - a: `analysis/networks/cnn_posmap_occlusion.py`, `analysis/networks/cnn_interpret2.py`, `analysis/figure_data/figure_cnn_main_data.py`; b: `analysis/figure_data/panelB_prob_ci.py`, `analysis/acceptor/me3_pwm.py`, `analysis/u1/u1_pwm.py`, `analysis/acceptor/model_acc_pwm.py`; plot: `plotting/make_figure_cnn_interpretability.R`
 
